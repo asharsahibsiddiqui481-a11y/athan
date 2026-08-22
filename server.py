@@ -304,7 +304,7 @@ The user's name is {username}. Be warm but not sycophantic. Be concise unless de
     def stream():
         try:
             completion = client.chat.completions.create(
-                model='llama-3.3-70b-versatile',
+                                model='openai/gpt-oss-120b',
                 messages=full_messages,
                 stream=True,
             )

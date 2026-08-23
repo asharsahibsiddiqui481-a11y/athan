@@ -7,6 +7,13 @@
       "runtimeArgs": ["serve_weather.py"],
       "port": 3001,
       "autoPort": true
+    },
+    {
+      "name": "flask-app",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["server.py"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

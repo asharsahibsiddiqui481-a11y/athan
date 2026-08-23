@@ -12,7 +12,7 @@ from authlib.integrations.flask_client import OAuth
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='public')
+app = Flask(__name__, static_folder='public', static_url_path='')
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -70,6 +70,18 @@ def index():
 @app.route('/weather')
 def weather():
     return send_from_directory('public', 'weather.html')
+
+
+@app.route('/athan.html')
+@app.route('/athan')
+def athan():
+    return send_from_directory('public', 'athan.html')
+
+
+@app.route('/quran.html')
+@app.route('/quran')
+def quran():
+    return send_from_directory('public', 'quran.html')
 
 
 # ── Auth: username/password ────────────────────────────────────
@@ -304,7 +316,7 @@ The user's name is {username}. Be warm but not sycophantic. Be concise unless de
     def stream():
         try:
             completion = client.chat.completions.create(
-                                model='openai/gpt-oss-120b',
+                model='openai/gpt-oss-120b',
                 messages=full_messages,
                 stream=True,
             )
@@ -358,7 +370,6 @@ def tts():
         return Response(resp.content, mimetype='audio/mpeg')
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 
 if __name__ == '__main__':

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Qari Sahib</title>
+<link rel="icon" href="icon-192.png"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--glass:rgba(255,255,255,0.08);--gb:rgba(255,255,255,0.14);--r:20px;--rs:14px;--acc:#e8b94d}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:20px 14px 60px;background:linear-gradient(180deg,#03040a,#0a1128,#141a35);color:#fff}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;width:100%;max-width:680px;display:flex;flex-direction:column;gap:14px}
+.topbar{display:flex;align-items:center;justify-content:space-between}
+.app-title{font-size:18px;font-weight:700;opacity:.9;display:flex;align-items:center;gap:6px}
+.navlink{display:flex;align-items:center;gap:6px;white-space:nowrap;background:rgba(255,255,255,.15);border:none;color:#fff;padding:9px 16px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none}
+.navlink:hover{background:rgba(255,255,255,.24)}
+.card{background:var(--glass);border:1px solid var(--gb);border-radius:var(--r);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:20px}
+.ct{font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.5;margin-bottom:14px;display:flex;align-items:center;gap:5px}
+.err{background:rgba(255,80,80,.2);border:1px solid rgba(255,80,80,.4);border-radius:var(--rs);padding:12px 18px;font-size:14px;display:none}
+select{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;outline:none}
+select option{color:#111}
+.tbtn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.tbtn.on{background:var(--acc);color:#1a1300}
+.picker-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.ayah-box{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:18px}
+.ayah-ar{font-size:28px;line-height:2.1;direction:rtl;text-align:right;font-family:'Traditional Arabic','Scheherazade New',serif}
+.ayah-en{font-size:14px;opacity:.75;margin-top:12px;line-height:1.6}
+.ayah-ref{font-size:12px;opacity:.5;margin-top:10px}
+.page-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
+.page-info{font-size:13px;opacity:.7;font-weight:600;text-align:center}
+.mushaf-page{border:2px solid var(--acc);border-radius:14px;padding:28px 22px;background:radial-gradient(ellipse at center,rgba(232,185,77,.06),transparent 70%),rgba(255,255,255,.03);position:relative}
+.mushaf-page::before{content:'';position:absolute;inset:6px;border:1px solid rgba(232,185,77,.35);border-radius:9px;pointer-events:none}
+.mushaf-text{direction:rtl;text-align:justify;text-align-last:right;font-size:24px;line-height:2.3;font-family:'Traditional Arabic','Scheherazade New',serif;position:relative}
+.surah-divider{display:block;text-align:center;margin:10px 0 16px;font-size:17px;font-weight:700;color:var(--acc);opacity:.95}
+.ayah-mark{display:inline-flex;align-items:center;justify-content:center;width:1.5em;height:1.5em;border:1.5px solid var(--acc);border-radius:50%;font-size:.5em;color:var(--acc);margin:0 5px;vertical-align:middle;cursor:pointer;transition:all .2s;line-height:1}
+.ayah-mark:hover{background:var(--acc);color:#1a1300}
+.ayah-mark.active{background:var(--acc);color:#1a1300}
+.rec-row{display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap}
+.mic-btn{width:60px;height:60px;border-radius:50%;border:none;background:var(--acc);color:#1a1300;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.mic-btn.rec{background:#e05a5a;color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,90,90,.5)}70%{box-shadow:0 0 0 16px rgba(224,90,90,0)}100%{box-shadow:0 0 0 0 rgba(224,90,90,0)}}
+.rec-status{font-size:13px;opacity:.65}
+.diff-box{margin-top:16px;padding:14px;background:rgba(255,255,255,.05);border-radius:var(--rs);direction:rtl;text-align:right;font-size:20px;line-height:2.1;display:none}
+.diff-match{color:#7fe0a0}
+.diff-miss{color:#ff7a7a;text-decoration:line-through;opacity:.85}
+.diff-extra{color:#f2b84b;text-decoration:underline dotted;text-decoration-thickness:1px}
+.acc-line{margin-top:10px;font-size:13px;font-weight:600;display:none}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat-item{text-align:center}
+.stat-val{font-size:22px;font-weight:700}
+.stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.4px;opacity:.5;margin-top:2px}
+.week-bars{display:flex;gap:8px;align-items:flex-end;height:70px;margin-top:18px}
+.wb-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.wb-bar{width:100%;background:var(--acc);border-radius:4px 4px 0 0;min-height:3px;transition:height .4s}
+.wb-lbl{font-size:10px;opacity:.5;margin-top:4px}
+.prayer-row{display:flex;gap:8px;flex-wrap:wrap}
+.report-box{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:14px;font-size:13px;line-height:1.7;white-space:pre-line;margin-bottom:14px}
+.share-row{display:flex;gap:8px;flex-wrap:wrap}
+.dua-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.dua-cat{background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;opacity:.65}
+.dua-cat.on{background:var(--acc);color:#1a1300;opacity:1}
+.dua-item{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.dua-item:last-child{border-bottom:none}
+.dua-title{font-weight:700;font-size:14px;margin-bottom:8px}
+.dua-ar{font-size:20px;direction:rtl;text-align:right;line-height:1.9;margin-bottom:6px;font-family:'Traditional Arabic','Scheherazade New',serif}
+.dua-translit{font-size:12px;opacity:.6;font-style:italic;margin-bottom:4px}
+.dua-en{font-size:13px;opacity:.8}
+.dua-ref{font-size:11px;opacity:.45;margin-top:6px}
+.hint{font-size:12px;opacity:.55;margin-top:10px}
+.utog{display:flex;background:rgba(255,255,255,.12);border-radius:99px;padding:3px;margin-bottom:16px;width:fit-content}
+.utog button{background:none;border:none;color:#fff;padding:7px 16px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;opacity:.55;transition:all .2s}
+.utog button.on{background:rgba(255,255,255,.25);opacity:1}
+.pbar-bg{height:5px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden}
+.pbar-fill{height:100%;border-radius:3px;background:linear-gradient(to right,#e8b94d,#f7dfa0);transition:width .3s}
+.learn-progress{margin-bottom:16px}
+.learn-progress-lbl{font-size:12px;opacity:.6;margin-bottom:6px}
+.learn-step{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:22px;text-align:center;min-height:160px}
+.learn-icon{font-size:44px;margin-bottom:10px}
+.learn-title{font-size:17px;font-weight:700;margin-bottom:10px}
+.learn-ar{font-size:24px;direction:rtl;font-family:'Traditional Arabic','Scheherazade New',serif;line-height:1.9;margin-bottom:8px}
+.learn-translit{font-size:13px;opacity:.65;font-style:italic;margin-bottom:6px}
+.learn-en{font-size:13px;opacity:.85;margin-bottom:10px}
+.learn-desc{font-size:14px;opacity:.8;line-height:1.6}
+.learn-nav{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
+.learn-nav button:disabled{opacity:.35;cursor:default}
+.search-input{width:100%;padding:12px 18px;border-radius:999px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;outline:none;margin-bottom:14px}
+.search-input::placeholder{color:rgba(255,255,255,.5)}
+.surah-list{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow-y:auto}
+.surah-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:10px;cursor:pointer;transition:background .15s}
+.surah-row:hover{background:rgba(255,255,255,.08)}
+.surah-num{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--acc);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.surah-names{flex:1;min-width:0}
+.surah-ar{font-size:17px;font-family:'Traditional Arabic','Scheherazade New',serif;direction:rtl}
+.surah-en{font-size:12px;opacity:.55;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.surah-meta{text-align:right;flex-shrink:0}
+.surah-count{font-size:12px;opacity:.6}
+.surah-type{font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.12);margin-top:3px;display:inline-block}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="wrap">
+  <div class="topbar">
+    <div class="app-title">📖 Qari Sahib</div>
+    <a href="athan.html" class="navlink">🕋 Prayer Times</a>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <div class="card">
+    <div class="ct">📚 Surahs</div>
+    <input id="surah-search" class="search-input" type="text" placeholder="Search a surah by name or number…" oninput="renderSurahList()"/>
+    <div class="surah-list" id="surah-list">Loading…</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📜 Mushaf Page</div>
+    <div class="page-nav">
+      <button class="tbtn" onclick="changePage(-1)">◀ Prev</button>
+      <div class="page-info" id="page-info">—</div>
+      <button class="tbtn" onclick="changePage(1)">Next ▶</button>
+    </div>
+    <div class="mushaf-page" id="mushaf-page">Loading…</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🎙 Recite &amp; Check</div>
+    <div class="picker-row">
+      <select id="sel-surah" onchange="onSurahChange()"><option>Loading surahs…</option></select>
+      <select id="sel-ayah" onchange="loadAyah()"></select>
+    </div>
+    <div class="ayah-box">
+      <div class="ayah-ar" id="ayah-ar">—</div>
+      <div class="ayah-en" id="ayah-en">Loading…</div>
+      <div class="ayah-ref" id="ayah-ref"></div>
+    </div>
+    <div class="rec-row">
+      <button class="mic-btn" id="mic-btn" onclick="toggleRecite()">🎙</button>
+      <button class="tbtn" onclick="playAyahAudio()">▶ Listen (reciter)</button>
+      <span class="rec-status" id="rec-status">Tap the mic and recite the ayah above</span>
+    </div>
+    <div class="diff-box" id="diff-box"></div>
+    <div class="acc-line" id="acc-line"></div>
+    <div class="hint">Uses your browser's built-in speech recognition to catch skipped, extra, or wrong words — it checks word accuracy, not tajweed/pronunciation. Works best in Chrome or Edge.</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🕌 Learn to Pray</div>
+    <div class="utog" id="learn-tabs">
+      <button id="tab-wudu" onclick="setLearnMode('wudu')">Wudu</button>
+      <button id="tab-salah" onclick="setLearnMode('salah')">Salah Steps</button>
+    </div>
+    <div class="learn-progress">
+      <div class="learn-progress-lbl" id="learn-progress-lbl">Step 1 of 10</div>
+      <div class="pbar-bg"><div class="pbar-fill" id="learn-pbar" style="width:0%"></div></div>
+    </div>
+    <div class="learn-step">
+      <div class="learn-icon" id="learn-icon">💧</div>
+      <div class="learn-title" id="learn-title">—</div>
+      <div class="learn-ar" id="learn-ar"></div>
+      <div class="learn-translit" id="learn-translit"></div>
+      <div class="learn-en" id="learn-en"></div>
+      <div class="learn-desc" id="learn-desc"></div>
+    </div>
+    <div class="learn-nav">
+      <button class="tbtn" id="learn-prev" onclick="prevStep()">◀ Previous</button>
+      <button class="tbtn" id="learn-next" onclick="nextStep()">Next ▶</button>
+    </div>
+    <div class="hint">A basic walkthrough of ablution (wudu) and a 2-rakah prayer. Not a substitute for learning from a qualified teacher, especially for tajweed and fiqh details specific to your madhab.</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📈 Your Progress</div>
+    <div class="stat-grid">
+      <div class="stat-item"><div class="stat-val" id="pg-streak">0</div><div class="stat-lbl">Day streak</div></div>
+      <div class="stat-item"><div class="stat-val" id="pg-today">0</div><div class="stat-lbl">Ayahs today</div></div>
+      <div class="stat-item"><div class="stat-val" id="pg-acc">—</div><div class="stat-lbl">Today's accuracy</div></div>
+      <div class="stat-item"><div class="stat-val" id="pg-total">0</div><div class="stat-lbl">Ayahs total</div></div>
+    </div>
+    <div class="week-bars" id="week-bars"></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🕌 Prayer Log — Today</div>
+    <div class="prayer-row" id="prayer-row"></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📤 Daily Report</div>
+    <div class="report-box" id="report-box">—</div>
+    <div class="share-row">
+      <button class="tbtn" onclick="shareWhatsApp()">🟢 Share via WhatsApp</button>
+      <button class="tbtn" onclick="shareSMS()">💬 Share via Messages</button>
+      <button class="tbtn" onclick="copyReport()">📋 Copy</button>
+    </div>
+    <div class="hint" id="copy-hint"></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🤲 Dua Library</div>
+    <div class="dua-cats" id="dua-cats"></div>
+    <div id="dua-list"></div>
+  </div>
+</div>
+
+<script>
+// ── Starfield background (same as Athan Clock) ─────────────────────────
+(function(){
+  const canvas=document.getElementById('stars');
+  const ctx=canvas.getContext('2d');
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  let w,h,stars=[],shooting=[];
+  function resize(){
+    w=window.innerWidth;h=window.innerHeight;
+    canvas.width=w*dpr;canvas.height=h*dpr;
+    canvas.style.width=w+'px';canvas.style.height=h+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const count=Math.min(220,Math.floor((w*h)/6000));
+    stars=Array.from({length:count},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.3+0.3,baseA:Math.random()*0.5+0.35,phase:Math.random()*Math.PI*2,speed:Math.random()*0.6+0.2}));
+  }
+  window.addEventListener('resize',resize);
+  resize();
+  function maybeSpawnShooting(){
+    if(shooting.length<2&&Math.random()<0.0025){
+      shooting.push({x:Math.random()*w*0.6,y:Math.random()*h*0.35,vx:7+Math.random()*4,vy:3.5+Math.random()*2,len:70+Math.random()*70,life:0,maxLife:35+Math.random()*15});
+    }
+  }
+  let t=0;
+  function draw(){
+    t+=0.02;
+    ctx.clearRect(0,0,w,h);
+    stars.forEach(s=>{
+      const a=s.baseA*(0.55+0.45*Math.sin(t*s.speed+s.phase));
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${a.toFixed(3)})`;ctx.fill();
+    });
+    maybeSpawnShooting();
+    shooting.forEach(sh=>{
+      sh.x+=sh.vx;sh.y+=sh.vy;sh.life++;
+      const alpha=Math.max(0,1-sh.life/sh.maxLife);
+      const tailX=sh.x-sh.len,tailY=sh.y-sh.len*(sh.vy/sh.vx);
+      const grad=ctx.createLinearGradient(sh.x,sh.y,tailX,tailY);
+      grad.addColorStop(0,`rgba(255,255,255,${alpha})`);grad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.strokeStyle=grad;ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(sh.x,sh.y);ctx.lineTo(tailX,tailY);ctx.stroke();
+    });
+    shooting=shooting.filter(sh=>sh.life<sh.maxLife);
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── Dua library data ─────────────────────────────────────────────────
+const DUAS=[
+  {cat:'morning',title:'Waking up',ar:'الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ',translit:'Al-hamdu lillahil-ladhi ahyana ba’da ma amatana wa ilayhin-nushur',en:'All praise is for Allah who gave us life after having taken it from us, and unto Him is the resurrection.',ref:'Al-Bukhari'},
+  {cat:'morning',title:'Morning remembrance',ar:'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ',translit:'Asbahna wa asbahal mulku lillah',en:'We have reached the morning and at this very time all sovereignty belongs to Allah.',ref:'Muslim'},
+  {cat:'evening',title:'Evening remembrance',ar:'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ',translit:'Amsayna wa amsal mulku lillah',en:'We have reached the evening and at this very time all sovereignty belongs to Allah.',ref:'Muslim'},
+  {cat:'sleep',title:'Before sleeping',ar:'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا',translit:'Bismika Allahumma amutu wa ahya',en:'In Your name, O Allah, I die and I live.',ref:'Al-Bukhari'},
+  {cat:'eating',title:'Before eating',ar:'بِسْمِ اللَّهِ',translit:'Bismillah',en:'In the name of Allah.',ref:'Abu Dawud, At-Tirmidhi'},
+  {cat:'eating',title:'After eating',ar:'الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مُسْلِمِينَ',translit:'Al-hamdu lillahil-ladhi at’amana wa saqana wa ja’alana muslimin',en:'Praise is to Allah who fed us and gave us drink and made us Muslims.',ref:'At-Tirmidhi'},
+  {cat:'home',title:'Leaving home',ar:'بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ',translit:'Bismillahi tawakkaltu ‘alallahi wa la hawla wa la quwwata illa billah',en:'In the name of Allah, I place my trust in Allah, and there is no might nor power except with Allah.',ref:'Abu Dawud, At-Tirmidhi'},
+  {cat:'home',title:'Entering home',ar:'اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ الْمَوْلِجِ وَخَيْرَ الْمَخْرَجِ',translit:'Allahumma inni as’aluka khayral-mawliji wa khayral-makhraji',en:'O Allah, I ask You for the best entrance and the best exit.',ref:'Abu Dawud'},
+  {cat:'masjid',title:'Entering the masjid',ar:'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',translit:'Allahumma-ftah li abwaba rahmatik',en:'O Allah, open the doors of Your mercy for me.',ref:'Muslim'},
+  {cat:'masjid',title:'Leaving the masjid',ar:'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ',translit:'Allahumma inni as’aluka min fadlik',en:'O Allah, I ask You from Your bounty.',ref:'Muslim'},
+  {cat:'travel',title:'Setting out on a journey',ar:'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنقَلِبُونَ',translit:'Subhanal-ladhi sakhkhara lana hadha wa ma kunna lahu muqrinin, wa inna ila rabbina lamunqalibun',en:'Glory to Him who has subjected this to us, and we could never have accomplished it ourselves. And indeed, to our Lord we will return.',ref:'Quran 43:13–14'},
+  {cat:'distress',title:'In times of distress',ar:'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ',translit:'Hasbunallahu wa ni’mal wakeel',en:'Allah is sufficient for us, and He is the best disposer of affairs.',ref:'Quran 3:173'},
+  {cat:'forgiveness',title:'Seeking forgiveness',ar:'أَسْتَغْفِرُ اللَّهَ',translit:'Astaghfirullah',en:'I seek forgiveness from Allah.',ref:'Widely narrated'},
+  {cat:'purity',title:'Entering the bathroom',ar:'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ',translit:'Allahumma inni a’udhu bika minal khubthi wal khaba’ith',en:'O Allah, I seek refuge in You from male and female devils.',ref:'Al-Bukhari, Muslim'},
+];
+const CAT_LABELS={all:'All',morning:'Morning',evening:'Evening',sleep:'Sleep',eating:'Eating',home:'Home',masjid:'Masjid',travel:'Travel',distress:'Distress',forgiveness:'Forgiveness',purity:'Purity'};
+let activeCat='all';
+
+function renderDuaCats(){
+  const cats=['all',...new Set(DUAS.map(d=>d.cat))];
+  document.getElementById('dua-cats').innerHTML=cats.map(c=>
+    `<button class="dua-cat ${c===activeCat?'on':''}" onclick="setDuaCat('${c}')">${CAT_LABELS[c]||c}</button>`
+  ).join('');
+}
+function setDuaCat(c){activeCat=c;renderDuaCats();renderDuaList();}
+function renderDuaList(){
+  const items=activeCat==='all'?DUAS:DUAS.filter(d=>d.cat===activeCat);
+  document.getElementById('dua-list').innerHTML=items.map(d=>`
+    <div class="dua-item">
+      <div class="dua-title">${esc(d.title)}</div>
+      <div class="dua-ar">${d.ar}</div>
+      <div class="dua-translit">${esc(d.translit)}</div>
+      <div class="dua-en">${esc(d.en)}</div>
+      <div class="dua-ref">${esc(d.ref)}</div>
+    </div>`).join('');
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+renderDuaCats();renderDuaList();
+
+// ── Learn to Pray: Wudu + Salah step-by-step guides ──────────────────
+const WUDU_STEPS=[
+  {icon:'🤲',title:'Make the intention (Niyyah)',desc:'Silently intend in your heart that you are performing wudu to purify yourself for prayer.'},
+  {icon:'🗣️',title:'Say Bismillah',ar:'بِسْمِ اللَّهِ',translit:'Bismillah',en:'In the name of Allah.',desc:'Begin the wudu by saying this.'},
+  {icon:'🖐️',title:'Wash your hands',desc:'Wash both hands up to the wrists, three times, starting with the right hand.'},
+  {icon:'👄',title:'Rinse your mouth',desc:'Take water into your mouth and rinse thoroughly, three times.'},
+  {icon:'👃',title:'Rinse your nose',desc:'Sniff water gently into your nostrils and blow it out, three times.'},
+  {icon:'😊',title:'Wash your face',desc:'Wash your entire face from the hairline to the chin, and ear to ear, three times.'},
+  {icon:'💪',title:'Wash your arms',desc:'Wash both arms up to and including the elbows, three times — right arm first, then left.'},
+  {icon:'🙆',title:'Wipe your head',desc:'With wet hands, wipe over your entire head once, from front to back.'},
+  {icon:'👂',title:'Wipe your ears',desc:'Using wet fingers, wipe the inside and outside of both ears.'},
+  {icon:'🦶',title:'Wash your feet',desc:'Wash both feet up to and including the ankles, three times — right foot first, then left. Wudu is now complete.'},
+];
+const SALAH_STEPS=[
+  {icon:'🧭',title:'Face the Qibla & make Niyyah',desc:'Stand facing the direction of the Kaaba (see the Qibla Direction card on the Athan Clock page) and silently intend which prayer you are about to perform.'},
+  {icon:'🙌',title:'Takbiratul Ihram (Opening)',ar:'اللَّهُ أَكْبَرُ',translit:'Allahu Akbar',en:'Allah is the Greatest.',desc:'Raise your hands to your ears or shoulders, say this, then fold your hands over your chest.'},
+  {icon:'📖',title:'Qiyam — recite Al-Fatiha',desc:'While standing, recite Surah Al-Fatiha, then a short surah of your choice (e.g. Al-Ikhlas). Use the Recite & Check section above to practice it.'},
+  {icon:'🙇',title:'Ruku (Bowing)',ar:'سُبْحَانَ رَبِّيَ الْعَظِيمِ',translit:'Subhana Rabbiyal ‘Azeem',en:'Glory be to my Lord, the Most Great.',desc:'Bend at the waist with your back straight and hands on your knees. Say this three times.'},
+  {icon:'🧍',title:'I’tidal — rise from Ruku',ar:'سَمِعَ اللَّهُ لِمَنْ حَمِدَهُ رَبَّنَا وَلَكَ الْحَمْدُ',translit:'Sami’ Allahu liman hamidah — Rabbana wa lakal hamd',en:'Allah hears whoever praises Him — Our Lord, to You is all praise.',desc:'Rise back to standing, saying the first phrase as you rise and the second once upright.'},
+  {icon:'🙏',title:'Sujud (Prostration)',ar:'سُبْحَانَ رَبِّيَ الْأَعْلَى',translit:'Subhana Rabbiyal A’la',en:'Glory be to my Lord, the Most High.',desc:'Lower yourself so your forehead, nose, both palms, both knees, and toes touch the ground. Say this three times.'},
+  {icon:'🧎',title:'Julsa — sit between prostrations',ar:'رَبِّ اغْفِرْ لِي',translit:'Rabbi ighfir li',en:'My Lord, forgive me.',desc:'Sit up briefly, then say this before prostrating a second time.'},
+  {icon:'🙏',title:'Second Sujud',ar:'سُبْحَانَ رَبِّيَ الْأَعْلَى',translit:'Subhana Rabbiyal A’la',en:'Glory be to my Lord, the Most High.',desc:'Prostrate a second time, saying the same tasbih three times. This completes one rak’ah.'},
+  {icon:'🔁',title:'Second rak’ah',desc:'Stand up and repeat Qiyam (Al-Fatiha + a surah), Ruku, and both prostrations exactly as before.'},
+  {icon:'🤲',title:'Tashahhud (sitting)',ar:'التَّحِيَّاتُ لِلَّهِ وَالصَّلَوَاتُ وَالطَّيِّبَاتُ، السَّلَامُ عَلَيْكَ أَيُّهَا النَّبِيُّ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ، السَّلَامُ عَلَيْنَا وَعَلَى عِبَادِ اللَّهِ الصَّالِحِينَ، أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللَّهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ',translit:'At-tahiyyatu lillahi was-salawatu wat-tayyibat, as-salamu ‘alayka ayyuhan-nabiyyu wa rahmatullahi wa barakatuh, as-salamu ‘alayna wa ‘ala ‘ibadillahis-salihin, ash-hadu alla ilaha illallah wa ash-hadu anna Muhammadan ‘abduhu wa rasuluh',en:'All greetings, prayers, and good things are due to Allah. Peace be upon you, O Prophet, and the mercy of Allah and His blessings. Peace be upon us and upon the righteous servants of Allah. I bear witness that there is no god but Allah, and I bear witness that Muhammad is His servant and messenger.',desc:'Sit and recite this after the second (and, in longer prayers, final) rak’ah.'},
+  {icon:'↔️',title:'Salam (ending)',ar:'السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ',translit:'Assalamu ‘alaikum wa rahmatullah',en:'Peace and the mercy of Allah be upon you.',desc:'Turn your head to the right and say this, then turn to the left and repeat it. This ends the prayer.'},
+];
+let learnMode='wudu',stepIndex=0;
+function currentLearnSteps(){return learnMode==='wudu'?WUDU_STEPS:SALAH_STEPS}
+function setLearnMode(m){
+  learnMode=m;stepIndex=0;
+  document.getElementById('tab-wudu').classList.toggle('on',m==='wudu');
+  document.getElementById('tab-salah').classList.toggle('on',m==='salah');
+  renderLearnStep();
+}
+function renderLearnStep(){
+  const steps=currentLearnSteps();
+  const s=steps[stepIndex];
+  document.getElementById('learn-icon').textContent=s.icon||'🕌';
+  document.getElementById('learn-title').textContent=s.title;
+  const arEl=document.getElementById('learn-ar');
+  arEl.textContent=s.ar||'';arEl.style.display=s.ar?'block':'none';
+  const trEl=document.getElementById('learn-translit');
+  trEl.textContent=s.translit||'';trEl.style.display=s.translit?'block':'none';
+  const enEl=document.getElementById('learn-en');
+  enEl.textContent=s.en||'';enEl.style.display=s.en?'block':'none';
+  document.getElementById('learn-desc').textContent=s.desc||'';
+  document.getElementById('learn-progress-lbl').textContent=`Step ${stepIndex+1} of ${steps.length}`;
+  document.getElementById('learn-pbar').style.width=`${((stepIndex+1)/steps.length*100).toFixed(0)}%`;
+  document.getElementById('learn-prev').disabled=stepIndex===0;
+  document.getElementById('learn-next').disabled=stepIndex===steps.length-1;
+}
+function prevStep(){if(stepIndex>0){stepIndex--;renderLearnStep()}}
+function nextStep(){const steps=currentLearnSteps();if(stepIndex<steps.length-1){stepIndex++;renderLearnStep()}}
+setLearnMode('wudu');
+
+// ── Progress / prayer log storage ───────────────────────────────────────
+const PRAYER_NAMES=['Fajr','Dhuhr','Asr','Maghrib','Isha'];
+let log=JSON.parse(localStorage.getItem('qs_log')||'{}');
+function dateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function saveLog(){localStorage.setItem('qs_log',JSON.stringify(log))}
+function todayEntry(){
+  const k=dateKey(new Date());
+  if(!log[k])log[k]={ayahs:[],prayers:{}};
+  return log[k];
+}
+function isActiveDay(day){return !!day&&(((day.ayahs||[]).length>0)||Object.values(day.prayers||{}).some(Boolean))}
+function computeStreak(){
+  const today=new Date();
+  let cursor=new Date(today);
+  if(!isActiveDay(log[dateKey(cursor)]))cursor.setDate(cursor.getDate()-1);
+  let streak=0;
+  while(isActiveDay(log[dateKey(cursor)])){streak++;cursor.setDate(cursor.getDate()-1);}
+  return streak;
+}
+function logAyahSession(surahN,ayahN,acc){
+  const day=todayEntry();
+  day.ayahs=day.ayahs||[];
+  day.ayahs.push({surah:surahN,ayah:ayahN,acc,ts:Date.now()});
+  saveLog();
+  renderProgress();renderReport();
+}
+function togglePrayer(name){
+  const day=todayEntry();
+  day.prayers=day.prayers||{};
+  day.prayers[name]=!day.prayers[name];
+  saveLog();
+  renderPrayerRow();renderProgress();renderReport();
+}
+function renderPrayerRow(){
+  const day=log[dateKey(new Date())]||{};
+  const prayers=day.prayers||{};
+  document.getElementById('prayer-row').innerHTML=PRAYER_NAMES.map(n=>
+    `<button class="tbtn ${prayers[n]?'on':''}" onclick="togglePrayer('${n}')">${prayers[n]?'✓ ':''}${n}</button>`
+  ).join('');
+}
+function renderProgress(){
+  const today=dateKey(new Date());
+  const day=log[today]||{ayahs:[],prayers:{}};
+  const ayahCount=(day.ayahs||[]).length;
+  const avgAcc=ayahCount?Math.round(day.ayahs.reduce((a,b)=>a+b.acc,0)/ayahCount):0;
+  let totalAyahs=0;
+  Object.values(log).forEach(d=>totalAyahs+=(d.ayahs||[]).length);
+  document.getElementById('pg-streak').textContent=computeStreak();
+  document.getElementById('pg-today').textContent=ayahCount;
+  document.getElementById('pg-acc').textContent=ayahCount?avgAcc+'%':'—';
+  document.getElementById('pg-total').textContent=totalAyahs;
+  const bars=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=dateKey(d);
+    bars.push({label:d.toLocaleDateString('en-US',{weekday:'narrow'}),count:(log[k]?.ayahs||[]).length});
+  }
+  const max=Math.max(1,...bars.map(b=>b.count));
+  document.getElementById('week-bars').innerHTML=bars.map(b=>
+    `<div class="wb-col"><div class="wb-bar" style="height:${Math.max(4,b.count/max*100).toFixed(0)}%"></div><div class="wb-lbl">${b.label}</div></div>`
+  ).join('');
+}
+function buildReportText(){
+  const today=dateKey(new Date());
+  const day=log[today]||{ayahs:[],prayers:{}};
+  const ayahCount=(day.ayahs||[]).length;
+  const avgAcc=ayahCount?Math.round(day.ayahs.reduce((a,b)=>a+b.acc,0)/ayahCount):0;
+  const prayersDone=Object.values(day.prayers||{}).filter(Boolean).length;
+  const streak=computeStreak();
+  const lines=[
+    `📖 Qari Sahib — Daily Report (${today})`,
+    `Ayahs recited: ${ayahCount}${ayahCount?` (avg accuracy ${avgAcc}%)`:''}`,
+    `Prayers completed: ${prayersDone}/5`,
+    `Current streak: ${streak} day${streak===1?'':'s'}`,
+    (ayahCount||prayersDone)?'Keep it up! 🌙':'No activity yet today — recite an ayah or log a prayer.'
+  ];
+  return lines.join('\n');
+}
+function renderReport(){document.getElementById('report-box').textContent=buildReportText()}
+function shareWhatsApp(){window.open(`https://wa.me/?text=${encodeURIComponent(buildReportText())}`,'_blank')}
+function shareSMS(){window.location.href=`sms:?body=${encodeURIComponent(buildReportText())}`}
+function copyReport(){
+  const hint=document.getElementById('copy-hint');
+  navigator.clipboard?.writeText(buildReportText())
+    .then(()=>{hint.textContent='Copied to clipboard ✓';setTimeout(()=>hint.textContent='',2000)})
+    .catch(()=>{hint.textContent='Could not copy — select and copy the text above manually.'});
+}
+renderPrayerRow();renderProgress();renderReport();
+
+// ── Surah / ayah loading ─────────────────────────────────────────────
+let surahList=[],currentAyahText='',currentAyahAudioUrl='',currentSurah=1,currentAyahNum=1,currentPage=1;
+
+async function loadSurahList(){
+  try{
+    const r=await fetch('https://api.alquran.cloud/v1/surah').then(r=>r.json());
+    surahList=r.data;
+    document.getElementById('sel-surah').innerHTML=surahList.map(s=>
+      `<option value="${s.number}">${s.number}. ${esc(s.englishName)} (${esc(s.englishNameTranslation)})</option>`
+    ).join('');
+    renderSurahList();
+    onSurahChange();
+  }catch(e){showErr('Could not load the surah list — check your connection and reload.')}
+}
+function renderSurahList(){
+  const q=(document.getElementById('surah-search').value||'').trim().toLowerCase();
+  const list=document.getElementById('surah-list');
+  const items=surahList.filter(s=>!q||s.englishName.toLowerCase().includes(q)||s.englishNameTranslation.toLowerCase().includes(q)||String(s.number)===q||s.name.includes(q));
+  if(!items.length){list.innerHTML='<div class="hint">No surahs match your search.</div>';return}
+  list.innerHTML=items.map(s=>`
+    <div class="surah-row" onclick="jumpToAyah(${s.number},1)">
+      <div class="surah-num">${s.number}</div>
+      <div class="surah-names">
+        <div class="surah-ar">${s.name}</div>
+        <div class="surah-en">${esc(s.englishName)} — ${esc(s.englishNameTranslation)}</div>
+      </div>
+      <div class="surah-meta">
+        <div class="surah-count">${s.numberOfAyahs} ayahs</div>
+        <div class="surah-type">${esc(s.revelationType)}</div>
+      </div>
+    </div>`).join('');
+}
+function onSurahChange(){
+  const n=+document.getElementById('sel-surah').value;
+  const surah=surahList.find(s=>s.number===n);
+  if(!surah)return;
+  const ayahSel=document.getElementById('sel-ayah');
+  ayahSel.innerHTML=Array.from({length:surah.numberOfAyahs},(_,i)=>`<option value="${i+1}">Ayah ${i+1}</option>`).join('');
+  loadAyah();
+}
+async function loadAyah(){
+  const surahN=+document.getElementById('sel-surah').value;
+  const ayahN=+document.getElementById('sel-ayah').value;
+  const surah=surahList.find(s=>s.number===surahN);
+  document.getElementById('ayah-ar').textContent='…';
+  document.getElementById('ayah-en').textContent='Loading…';
+  resetRecitationUI();
+  try{
+    const r=await fetch(`https://api.alquran.cloud/v1/ayah/${surahN}:${ayahN}/editions/quran-uthmani,en.sahih,ar.alafasy`).then(r=>r.json());
+    const arObj=r.data.find(d=>d.edition.identifier==='quran-uthmani');
+    const enObj=r.data.find(d=>d.edition.identifier==='en.sahih');
+    const audioObj=r.data.find(d=>d.edition.identifier==='ar.alafasy');
+    currentAyahText=arObj.text;
+    currentAyahAudioUrl=audioObj.audio;
+    currentSurah=surahN;currentAyahNum=ayahN;
+    document.getElementById('ayah-ar').textContent=currentAyahText;
+    document.getElementById('ayah-en').textContent=enObj.text;
+    document.getElementById('ayah-ref').textContent=`${surah?surah.englishName:''} — ${surahN}:${ayahN}`;
+    if(arObj.page&&arObj.page!==currentPage)await loadMushafPage(arObj.page);
+    else highlightActiveAyah();
+  }catch(e){showErr('Could not load this ayah — try again.')}
+}
+loadSurahList();
+
+// ── Mushaf-style page view ───────────────────────────────────────────
+function toArabicDigits(n){
+  const map=['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+  return String(n).split('').map(d=>map[+d]??d).join('');
+}
+async function changePage(delta){
+  const next=currentPage+delta;
+  if(next<1||next>604)return;
+  await loadMushafPage(next);
+}
+async function loadMushafPage(n){
+  const box=document.getElementById('mushaf-page');
+  box.textContent='Loading…';
+  try{
+    const r=await fetch(`https://api.alquran.cloud/v1/page/${n}/quran-uthmani`).then(r=>r.json());
+    renderMushafPage(r.data);
+  }catch(e){box.textContent='Could not load this page — try again.'}
+}
+function renderMushafPage(data){
+  currentPage=data.number;
+  const ayahs=data.ayahs;
+  document.getElementById('page-info').textContent=`Page ${data.number} of 604 · Juz ${ayahs[0].juz}`;
+  let html='<div class="mushaf-text">';
+  ayahs.forEach(a=>{
+    if(a.numberInSurah===1)html+=`<span class="surah-divider">﴾ ${esc(a.surah.name)} ﴿</span>`;
+    html+=`${a.text} <span class="ayah-mark" data-surah="${a.surah.number}" data-ayahnum="${a.numberInSurah}" onclick="jumpToAyah(${a.surah.number},${a.numberInSurah})">${toArabicDigits(a.numberInSurah)}</span> `;
+  });
+  html+='</div>';
+  document.getElementById('mushaf-page').innerHTML=html;
+  highlightActiveAyah();
+}
+function highlightActiveAyah(){
+  document.querySelectorAll('.ayah-mark').forEach(el=>{
+    el.classList.toggle('active',+el.dataset.surah===currentSurah&&+el.dataset.ayahnum===currentAyahNum);
+  });
+}
+async function jumpToAyah(surahN,ayahNumInSurah){
+  const surah=surahList.find(s=>s.number===surahN);
+  if(!surah)return;
+  document.getElementById('sel-surah').value=surahN;
+  document.getElementById('sel-ayah').innerHTML=Array.from({length:surah.numberOfAyahs},(_,i)=>`<option value="${i+1}">Ayah ${i+1}</option>`).join('');
+  document.getElementById('sel-ayah').value=ayahNumInSurah;
+  await loadAyah();
+}
+loadMushafPage(1);
+
+// ── Audio playback ──────────────────────────────────────────────────
+const listenAudio=new Audio();
+function playAyahAudio(){
+  if(!currentAyahAudioUrl)return;
+  listenAudio.src=currentAyahAudioUrl;
+  listenAudio.play().catch(()=>{});
+}
+
+// ── Arabic normalization + word-level diff ──────────────────────────
+function normalizeAr(s){
+  return s
+    .replace(/[ؐ-ًؚ-ٟۖ-ٰۭـ]/g,'')
+    .replace(/[إأآٱ]/g,'ا')
+    .replace(/ى/g,'ي')
+    .replace(/ة/g,'ه')
+    .replace(/[^؀-ۿ\s]/g,'')
+    .trim();
+}
+function wordsOf(s){return normalizeAr(s).split(/\s+/).filter(Boolean)}
+function diffWords(ref,hyp){
+  const n=ref.length,m=hyp.length;
+  const dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++){
+    dp[i][j]=ref[i-1]===hyp[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+  }
+  const ops=[];
+  let i=n,j=m;
+  while(i>0&&j>0){
+    if(ref[i-1]===hyp[j-1]){ops.unshift({type:'match',word:ref[i-1]});i--;j--}
+    else if(dp[i-1][j]>=dp[i][j-1]){ops.unshift({type:'miss',word:ref[i-1]});i--}
+    else{ops.unshift({type:'extra',word:hyp[j-1]});j--}
+  }
+  while(i>0){i--;ops.unshift({type:'miss',word:ref[i]})}
+  while(j>0){j--;ops.unshift({type:'extra',word:hyp[j]})}
+  return ops;
+}
+
+// ── Recitation via Web Speech API ────────────────────────────────────
+let recognition=null,recognizing=false,finalTranscript='';
+function resetRecitationUI(){
+  finalTranscript='';
+  document.getElementById('diff-box').style.display='none';
+  document.getElementById('diff-box').innerHTML='';
+  document.getElementById('acc-line').style.display='none';
+  document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
+}
+function toggleRecite(){
+  if(!currentAyahText){showErr('Load an ayah first.');return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showErr("Speech recognition isn't supported in this browser — try Chrome or Edge.");return}
+  if(recognizing){recognition.stop();return}
+  finalTranscript='';
+  document.getElementById('diff-box').style.display='none';
+  document.getElementById('acc-line').style.display='none';
+  recognition=new SR();
+  recognition.lang='ar-SA';
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.onstart=()=>{
+    recognizing=true;
+    document.getElementById('mic-btn').classList.add('rec');
+    document.getElementById('rec-status').textContent='Listening… tap again to stop';
+  };
+  recognition.onerror=(e)=>{
+    document.getElementById('rec-status').textContent=`Mic error: ${e.error}`;
+  };
+  recognition.onresult=(e)=>{
+    let interim='';
+    for(let k=e.resultIndex;k<e.results.length;k++){
+      const res=e.results[k];
+      if(res.isFinal)finalTranscript+=res[0].transcript+' ';
+      else interim+=res[0].transcript;
+    }
+  };
+  recognition.onend=()=>{
+    recognizing=false;
+    document.getElementById('mic-btn').classList.remove('rec');
+    document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
+    finishSession();
+  };
+  recognition.start();
+}
+function finishSession(){
+  if(!finalTranscript.trim())return;
+  const refWords=wordsOf(currentAyahText);
+  const hypWords=wordsOf(finalTranscript);
+  const ops=diffWords(refWords,hypWords);
+  const box=document.getElementById('diff-box');
+  box.innerHTML=ops.map(o=>`<span class="diff-${o.type}">${esc(o.word)}</span>`).join(' ');
+  box.style.display='block';
+  const matches=ops.filter(o=>o.type==='match').length;
+  const acc=refWords.length?Math.round(matches/refWords.length*100):0;
+  const accLine=document.getElementById('acc-line');
+  accLine.textContent=`Accuracy: ${acc}% — ${ops.filter(o=>o.type==='miss').length} missed, ${ops.filter(o=>o.type==='extra').length} extra`;
+  accLine.style.display='block';
+  logAyahSession(currentSurah,currentAyahNum,acc);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function showErr(msg){const el=document.getElementById('err');el.textContent=msg;el.style.display='block'}
+</script>
+</body>
+</html>

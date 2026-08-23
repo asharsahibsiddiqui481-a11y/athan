@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Weather</title>
+<title>weather</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>⛅</text></svg>"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow-x:hidden;max-width:100%}
 :root{--glass:rgba(255,255,255,0.09);--gb:rgba(255,255,255,0.15);--r:20px;--rs:14px}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:20px 14px 60px;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#fff;transition:background .5s}
 body.sunny{background:linear-gradient(135deg,#1e3c72,#2a5298)}
@@ -19,16 +21,45 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 /* topbar */
 .topbar{display:flex;align-items:center;justify-content:space-between}
 .app-title{font-size:18px;font-weight:700;opacity:.9}
+/* brand */
+.brand{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;
+  padding:4px 8px;margin-left:-8px;border-radius:12px;transition:background .18s,transform .12s}
+.brand:hover{background:rgba(255,255,255,.10)}
+.brand:active{transform:scale(.96)}
+.brand:focus-visible{outline:2px solid rgba(255,255,255,.6);outline-offset:2px}
+.brand-ico{width:36px;height:36px;flex-shrink:0;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.brand-name{font-size:20px;font-weight:800;letter-spacing:-.4px}
+.empty-logo{width:132px;height:132px;margin:0 auto 6px;display:block;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.4))}
 .utog{display:flex;background:rgba(255,255,255,.12);border-radius:99px;padding:3px}
 .utog button{background:none;border:none;color:#fff;padding:5px 14px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;opacity:.55;transition:all .2s}
 .utog button.on{background:rgba(255,255,255,.25);opacity:1}
 /* search */
-.sw{position:relative}
+/* No CSS width transition here: animating width off a percentage base stalls
+   and the bar never resizes. The open/close is animated from JS instead. */
+.sw{position:relative;width:100%;align-self:stretch}
+.sw.collapsed{width:54px;align-self:flex-start;cursor:pointer}
+.sw.collapsed input{opacity:0;pointer-events:none}
+.sw input{transition:background .2s,opacity .18s}
 .sw input{width:100%;padding:14px 52px 14px 20px;border-radius:999px;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:15px;outline:none;transition:background .2s}
 .sw input::placeholder{color:rgba(255,255,255,.55)}
 .sw input:focus{background:rgba(255,255,255,.22)}
 .sw button{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.22);border:none;color:#fff;width:38px;height:38px;border-radius:999px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .sw button:hover{background:rgba(255,255,255,.35)}
+/* suggestions */
+.sugg{position:absolute;top:calc(100% + 8px);left:0;right:0;background:rgba(15,25,40,0.97);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.18);border-radius:18px;overflow:hidden;z-index:200;display:none;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.sugg-item{padding:11px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:background .12s}
+.sugg-item:hover,.sugg-item.active{background:rgba(255,255,255,.1)}
+.sugg-item+.sugg-item{border-top:1px solid rgba(255,255,255,.06)}
+.sugg-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sugg-city{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sugg-meta{font-size:12px;opacity:.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sugg-cc{font-size:11px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:99px;font-weight:600;flex-shrink:0}
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(18px) scale(.985);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 /* error/loading */
 .err{background:rgba(255,80,80,.2);border:1px solid rgba(255,80,80,.4);border-radius:var(--rs);padding:12px 18px;font-size:14px;display:none}
 .ld{text-align:center;padding:32px;opacity:.7;display:none}
@@ -39,7 +70,7 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 .empty .ei{font-size:64px;margin-bottom:12px}
 .empty p{font-size:15px;line-height:1.6}
 /* card */
-.card{background:var(--glass);border:1px solid var(--gb);border-radius:var(--r);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:20px;animation:fu .35s ease}
+.card{background:var(--glass);border:1px solid var(--gb);border-radius:var(--r);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:20px}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .ct{font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.5;margin-bottom:14px;display:flex;align-items:center;gap:5px}
 /* hero */
@@ -71,6 +102,52 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 .aqi-labels{display:flex;justify-content:space-between;font-size:9px;opacity:.4;margin-top:5px}
 .poll{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:12px}
 .pi{display:flex;justify-content:space-between;font-size:12px;opacity:.65;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+/* saved places */
+.hloc{position:relative}
+.save-btn{background:none;border:none;color:#fff;cursor:pointer;padding:4px;margin-left:auto;
+  opacity:.45;transition:opacity .2s,transform .18s;display:flex;align-items:center}
+.save-btn:hover{opacity:.9}
+.save-btn.on{opacity:1;color:#ffd54f}
+.save-btn:active{transform:scale(.85)}
+.saved-wrap{margin-top:26px;text-align:left}
+.saved-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.45;margin-bottom:10px}
+.saved-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--rs);
+  background:var(--glass);border:1px solid var(--gb);backdrop-filter:blur(20px);
+  cursor:pointer;margin-bottom:8px;transition:background .18s}
+.saved-item:hover{background:rgba(255,255,255,.16)}
+.saved-ico{font-size:26px;line-height:1;flex-shrink:0}
+.saved-main{flex:1;min-width:0}
+.saved-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-sub{font-size:12px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-temp{font-size:22px;font-weight:700;flex-shrink:0}
+.saved-del{background:none;border:none;color:#fff;opacity:.3;cursor:pointer;padding:6px;flex-shrink:0;
+  font-size:16px;line-height:1;transition:opacity .18s}
+.saved-del:hover{opacity:.9;color:#ff8a80}
+/* recents */
+.rec-wrap{margin-top:22px;text-align:left}
+.rec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rec-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.45}
+.rec-clear{background:none;border:none;color:#fff;opacity:.38;font-size:11px;cursor:pointer;
+  text-transform:uppercase;letter-spacing:.5px;transition:opacity .18s;padding:2px 4px}
+.rec-clear:hover{opacity:.85}
+.rec-chips{display:flex;flex-wrap:wrap;gap:8px}
+.rec-chip{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:99px;
+  background:var(--glass);border:1px solid var(--gb);backdrop-filter:blur(20px);
+  font-size:13px;cursor:pointer;transition:background .18s}
+.rec-chip:hover{background:rgba(255,255,255,.18)}
+.rec-chip .cc{font-size:10px;opacity:.5;font-weight:600}
+/* forecast models */
+.mdl-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+.mdl-conf{font-size:12px;opacity:.6}
+.mdl-spread{font-size:12px;opacity:.5;margin-bottom:12px}
+.mdl-row{display:grid;grid-template-columns:1fr 90px 46px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.mdl-row:last-child{border-bottom:none}
+.mdl-name{font-size:13px;display:flex;align-items:center;gap:6px;min-width:0}
+.mdl-name span.n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdl-cc{font-size:10px;background:rgba(255,255,255,.14);padding:2px 6px;border-radius:99px;font-weight:600;flex-shrink:0;opacity:.8}
+.mdl-track{height:5px;border-radius:3px;background:rgba(255,255,255,.13);position:relative}
+.mdl-dot{position:absolute;top:-3px;width:11px;height:11px;border-radius:50%;background:#7fd3ff;transform:translateX(-50%);box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.mdl-temp{font-size:13px;font-weight:600;text-align:right}
 /* sun arc */
 .sun-svg{width:100%}
 .sun-times{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-top:4px}
@@ -97,6 +174,15 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 .ws .wsu{font-size:13px;opacity:.7}
 /* map */
 .map-frame{width:100%;height:360px;border:none;border-radius:12px;display:block}
+/* The embedded map swallows touch-scroll on phones, so it stays inert until
+   you deliberately tap it. */
+.map-wrap{position:relative}
+.map-shield{position:absolute;inset:0;border-radius:12px;cursor:pointer;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;
+  background:linear-gradient(to top,rgba(0,0,0,.32),rgba(0,0,0,0) 42%)}
+.map-shield span{font-size:12px;font-weight:600;background:rgba(0,0,0,.55);
+  color:#fff;padding:7px 14px;border-radius:99px;backdrop-filter:blur(6px)}
+.map-wrap.live .map-shield{display:none}
 /* moon */
 .moon-inner{display:flex;gap:18px;align-items:center}
 .moon-em{font-size:68px;line-height:1;flex-shrink:0}
@@ -114,6 +200,40 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 .loc-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:9px 18px;border-radius:99px;font-size:13px;cursor:pointer;transition:background .2s;width:fit-content}
 .loc-btn:hover{background:rgba(255,255,255,0.2)}
 .loc-btn:disabled{opacity:.5;cursor:not-allowed}
+/* ── FX layer ── */
+#fx{position:fixed;inset:0;width:100vw;height:100dvh;pointer-events:none;z-index:0}
+#flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 15%,#fff,#cfe3ff 38%,transparent 72%);opacity:0;pointer-events:none;z-index:2}
+.wrap{position:relative;z-index:1}
+/* ── animated hero icon ── */
+.hicon{display:inline-block;will-change:transform;animation:bob 4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+body.sunny .hicon{animation:sunpulse 4.5s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(253,184,19,.55))}
+@keyframes sunpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+body.rainy .hicon{animation:bob 2.6s ease-in-out infinite}
+body.stormy .hicon{animation:jitter .4s ease-in-out infinite}
+@keyframes jitter{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,1px)}60%{transform:translate(3px,-1px)}}
+body.snowy .hicon{animation:driftic 6s ease-in-out infinite}
+@keyframes driftic{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+body.night .hicon{animation:bob 5.5s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(200,215,255,.4))}
+/* ── entrance stagger ── */
+#wx>.card,#wx>.sg,#wx>.twocol{animation:fu .45s ease backwards}
+#wx>*:nth-child(1){animation-delay:.02s}#wx>*:nth-child(2){animation-delay:.07s}#wx>*:nth-child(3){animation-delay:.12s}
+#wx>*:nth-child(4){animation-delay:.17s}#wx>*:nth-child(5){animation-delay:.22s}#wx>*:nth-child(6){animation-delay:.27s}
+#wx>*:nth-child(7){animation-delay:.32s}#wx>*:nth-child(8){animation-delay:.37s}
+.frow{animation:slidein .4s ease backwards}
+@keyframes slidein{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+/* ── smooth value transitions ── */
+#c-arrow{transition:transform 1.1s cubic-bezier(.34,1.4,.64,1)}
+.mbar-fill,.illum-fill,.fbar-fill{transition:width .8s cubic-bezier(.4,0,.2,1)}
+.aqi-pin{transition:left .9s cubic-bezier(.4,0,.2,1)}
+/* ── sun path ── */
+#sun-body,#moon-body{transition:transform 1s cubic-bezier(.4,0,.2,1),opacity .6s}
+#arc-prog{transition:stroke-dasharray 1s ease}
+#skyA,#skyB,#skyC{transition:stop-color .8s ease}
+.sun-el{text-align:center;font-size:12px;opacity:.62;margin-top:9px}
+.twk{animation:twk 3s ease-in-out infinite}
+@keyframes twk{0%,100%{opacity:.25}50%{opacity:.95}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 @media(max-width:480px){
   .sg{grid-template-columns:repeat(2,1fr)}
   .twocol{grid-template-columns:1fr}
@@ -124,9 +244,72 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 </style>
 </head>
 <body>
+<canvas id="fx"></canvas>
+<div id="flash"></div>
+<!-- Logo, defined once and reused wherever it's needed -->
+<svg width="0" height="0" aria-hidden="true" focusable="false"
+     style="position:absolute;left:0;top:0;width:0;height:0;overflow:hidden;pointer-events:none">
+  <symbol id="logo-mark" viewBox="0 0 142 124">
+    <!-- The cloud is a union of circles + a base. Drawing the whole group
+         stroked first, then filled white on top, hides the internal seams
+         and leaves a single clean outline. -->
+    <defs>
+      <g id="logo-cloud-parts">
+        <circle cx="52" cy="66" r="20"/>
+        <circle cx="80" cy="54" r="26"/>
+        <circle cx="108" cy="68" r="19"/>
+        <rect x="36" y="68" width="78" height="22" rx="11"/>
+      </g>
+      <clipPath id="logo-cloud-clip">
+        <circle cx="52" cy="66" r="20"/>
+        <circle cx="80" cy="54" r="26"/>
+        <circle cx="108" cy="68" r="19"/>
+        <rect x="36" y="68" width="78" height="22" rx="11"/>
+      </clipPath>
+    </defs>
+
+    <!-- Rays and rain stand on the dark sky rather than on the white cloud,
+         so they take the sun/water colours instead of the outline ink. -->
+    <g stroke="#F3C144" stroke-width="5" stroke-linecap="round">
+      <line x1="27" y1="21" x2="20" y2="16"/>
+      <line x1="24" y1="32" x2="15" y2="32"/>
+      <line x1="27" y1="43" x2="20" y2="48"/>
+      <line x1="35" y1="14" x2="31" y2="6"/>
+      <line x1="46" y1="11" x2="46" y2="2"/>
+    </g>
+    <circle cx="46" cy="32" r="16" fill="#F3C144" stroke="#12181f" stroke-width="5"/>
+
+    <!-- cloud: outline pass, then white fill pass -->
+    <use href="#logo-cloud-parts" fill="#12181f" stroke="#12181f" stroke-width="11" stroke-linejoin="round"/>
+    <use href="#logo-cloud-parts" fill="#fff"/>
+
+    <!-- water sitting inside the cloud -->
+    <g clip-path="url(#logo-cloud-clip)">
+      <path d="M20,70 q16,-12 32,0 t32,0 t32,0 t32,0 V96 H20 Z" fill="#57ACDD"/>
+      <path d="M20,70 q16,-12 32,0 t32,0 t32,0 t32,0" fill="none"
+            stroke="#12181f" stroke-width="5" stroke-linecap="round"/>
+      <path d="M20,84 q16,-12 32,0 t32,0 t32,0 t32,0" fill="none"
+            stroke="#12181f" stroke-width="5" stroke-linecap="round"/>
+    </g>
+
+    <!-- rain -->
+    <g stroke="#7FC4E8" stroke-width="5" stroke-linecap="round">
+      <line x1="47" y1="99" x2="41" y2="115"/>
+      <line x1="63" y1="99" x2="57" y2="115"/>
+      <line x1="79" y1="99" x2="73" y2="115"/>
+      <line x1="95" y1="99" x2="89" y2="115"/>
+    </g>
+  </symbol>
+</svg>
+
 <div class="wrap">
   <div class="topbar">
-    <div class="app-title">Weather</div>
+    <div class="brand" onclick="goHome()" role="button" tabindex="0"
+         title="Back to home" aria-label="Back to home"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goHome()}">
+      <svg class="brand-ico" viewBox="0 0 142 124" aria-hidden="true"><use href="#logo-mark"/></svg>
+      <span class="brand-name">weather</span>
+    </div>
     <div class="utog">
       <button id="bc" class="on" onclick="setUnit('metric')">°C</button>
       <button id="bf" onclick="setUnit('imperial')">°F</button>
@@ -138,6 +321,7 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
     <button type="submit">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
+    <div class="sugg" id="sugg"></div>
   </form>
   <button class="loc-btn" id="loc-btn" onclick="getLocation()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-opacity=".4"/></svg>
@@ -151,11 +335,16 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
 
     <!-- Hero -->
     <div class="card hero" id="hero">
-      <div class="hloc"><span class="hcity" id="hcity"></span><span class="hcc" id="hcc"></span></div>
+      <div class="hloc"><span class="hcity" id="hcity"></span><span class="hcc" id="hcc"></span>
+        <button class="save-btn" id="save-btn" onclick="toggleSave()" title="Save this place" aria-label="Save this place">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3 5.8 21l1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>
+        </button>
+      </div>
       <div class="htime" id="htime"></div>
       <div class="hmain"><div class="hicon" id="hicon"></div><div class="htemp" id="htemp"></div></div>
       <div class="hcond" id="hcond"></div>
       <div class="hfeel" id="hfeel"></div>
+      <div class="hfeel" id="hconsensus" style="opacity:.45;font-size:12px;margin-top:2px"></div>
     </div>
 
     <!-- Stats -->
@@ -212,28 +401,61 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
       </div>
     </div>
 
+    <!-- Forecast model ensemble -->
+    <div class="card" id="models-card" style="display:none">
+      <div class="ct">🛰 Forecast models <span id="mdl-count" style="margin-left:auto;opacity:.8"></span></div>
+      <div class="mdl-head">
+        <div><span class="tv" id="mdl-mean">—</span><span class="tu" id="mdl-unit"></span>
+          <span class="ts" style="margin-left:6px">consensus</span></div>
+        <div class="mdl-conf" id="mdl-conf"></div>
+      </div>
+      <div class="mdl-spread" id="mdl-spread"></div>
+      <div id="mdl-list"></div>
+    </div>
+
     <!-- Sunrise / Sunset -->
     <div class="card">
-      <div class="ct">🌅 Sunrise &amp; Sunset</div>
-      <svg class="sun-svg" viewBox="0 0 300 130" xmlns="http://www.w3.org/2000/svg">
+      <div class="ct">🌅 Sun Path</div>
+      <svg class="sun-svg" viewBox="0 0 320 152" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="arcg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#ff9800"/>
-            <stop offset="50%" stop-color="#FDB813"/>
-            <stop offset="100%" stop-color="#ff5722"/>
+          <linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1">
+            <stop id="skyA" offset="0%" stop-color="#050a1c"/>
+            <stop id="skyB" offset="62%" stop-color="#0a1130"/>
+            <stop id="skyC" offset="100%" stop-color="#141d3d"/>
           </linearGradient>
+          <linearGradient id="arcg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#ff7043"/><stop offset="50%" stop-color="#FDB813"/><stop offset="100%" stop-color="#ff7043"/>
+          </linearGradient>
+          <radialGradient id="glowg">
+            <stop offset="0%" stop-color="#FDB813" stop-opacity=".55"/>
+            <stop offset="55%" stop-color="#FDB813" stop-opacity=".13"/>
+            <stop offset="100%" stop-color="#FDB813" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="mglowg">
+            <stop offset="0%" stop-color="#cfd8ff" stop-opacity=".38"/>
+            <stop offset="100%" stop-color="#cfd8ff" stop-opacity="0"/>
+          </radialGradient>
+          <clipPath id="skyclip"><rect x="4" y="4" width="312" height="126" rx="12"/></clipPath>
         </defs>
-        <line x1="10" y1="112" x2="290" y2="112" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
-        <path d="M 20 112 A 120 120 0 0 0 280 112" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="2.5" stroke-dasharray="4 4"/>
-        <path id="arc-prog" d="M 20 112 A 120 120 0 0 0 280 112" fill="none" stroke="url(#arcg)" stroke-width="3" stroke-dasharray="0 377"/>
-        <circle id="sun-glow" cx="150" cy="-10" r="22" fill="#FDB813" opacity=".25"/>
-        <circle id="sun-dot" cx="150" cy="-10" r="11" fill="#FDB813"/>
-        <text x="20" y="128" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="11" font-family="system-ui">Rise</text>
-        <text x="280" y="128" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="11" font-family="system-ui">Set</text>
-        <text id="sr-label" x="20" y="112" text-anchor="middle" fill="rgba(255,255,255,.0)" font-size="10"></text>
-        <text id="ss-label" x="280" y="112" text-anchor="middle" fill="rgba(255,255,255,.0)" font-size="10"></text>
+        <g clip-path="url(#skyclip)">
+          <rect x="4" y="4" width="312" height="126" fill="url(#skyg)"/>
+          <g id="sky-stars"></g>
+          <path id="arc-bg" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.6" stroke-dasharray="3 5"/>
+          <path id="arc-prog" fill="none" stroke="url(#arcg)" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="0 999"/>
+          <g id="moon-body" opacity="0" transform="translate(160,200)">
+            <circle r="26" fill="url(#mglowg)"/><circle r="8" fill="#e8eaf0"/>
+            <circle id="moon-shade" cx="5" cy="-3" r="7.4" fill="#0a1130" opacity="0"/>
+          </g>
+          <g id="sun-body" opacity="0" transform="translate(160,200)">
+            <circle r="32" fill="url(#glowg)"/><circle r="9" fill="#FDB813"/>
+          </g>
+        </g>
+        <line x1="6" y1="130" x2="314" y2="130" stroke="rgba(255,255,255,.32)" stroke-width="1.2"/>
+        <text x="26" y="146" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="10" font-family="system-ui">RISE</text>
+        <text x="294" y="146" text-anchor="middle" fill="rgba(255,255,255,.45)" font-size="10" font-family="system-ui">SET</text>
       </svg>
       <div class="sun-times"><span id="sr-time">—</span><span id="day-len" style="opacity:.5;font-size:12px;font-weight:400"></span><span id="ss-time">—</span></div>
+      <div class="sun-el" id="sun-el">—</div>
     </div>
 
     <!-- 10-day Forecast -->
@@ -279,7 +501,10 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
     <!-- Wind map -->
     <div class="card" style="padding:16px">
       <div class="ct">🗺 Live Wind Map</div>
-      <iframe class="map-frame" id="wmap" src="about:blank" allowfullscreen loading="lazy" title="Wind Map"></iframe>
+      <div class="map-wrap" id="map-wrap">
+        <iframe class="map-frame" id="wmap" src="about:blank" allowfullscreen loading="lazy" title="Wind Map"></iframe>
+        <div class="map-shield" onclick="document.getElementById('map-wrap').classList.add('live')"><span>Tap to explore the map</span></div>
+      </div>
     </div>
 
     <!-- Moon phase -->
@@ -299,8 +524,19 @@ body.foggy{background:linear-gradient(135deg,#4a5568,#606c88)}
   </div><!-- end #wx -->
 
   <div class="empty" id="empty">
-    <div class="ei">🌤️</div>
+    <svg class="empty-logo" viewBox="0 0 142 124" aria-hidden="true"><use href="#logo-mark"/></svg>
     <p>Search any city to see a full weather dashboard.</p>
+    <div class="saved-wrap" id="saved-wrap" style="display:none">
+      <div class="saved-title">⭐ Saved places</div>
+      <div id="saved-list"></div>
+    </div>
+    <div class="rec-wrap" id="rec-wrap" style="display:none">
+      <div class="rec-head">
+        <div class="rec-title">🕘 Recent</div>
+        <button class="rec-clear" onclick="clearRecents()">Clear</button>
+      </div>
+      <div class="rec-chips" id="rec-chips"></div>
+    </div>
   </div>
 </div>
 
@@ -310,7 +546,46 @@ const WD={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fogg
 const WI={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',56:'🌧️',57:'🌧️',61:'🌦️',63:'🌧️',65:'🌧️',66:'🌨️',67:'🌨️',71:'🌨️',73:'❄️',75:'❄️',77:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',85:'🌨️',86:'❄️',95:'⛈️',96:'⛈️',99:'⛈️'};
 
 function wicon(code,day){if(!day&&code<=3)return code===0?'🌙':'☁️';return WI[code]||'🌡️'}
-function applyTheme(code,day){document.body.className='';if(!day){document.body.classList.add('night');return}if(code===0)document.body.classList.add('sunny');else if(code<=3)document.body.classList.add('cloudy');else if(code<=48)document.body.classList.add('foggy');else if(code<=67)document.body.classList.add('rainy');else if(code<=77)document.body.classList.add('snowy');else if(code<=82)document.body.classList.add('rainy');else if(code<=86)document.body.classList.add('snowy');else document.body.classList.add('stormy')}
+// ── Sky colour: continuous, keyed to true solar altitude ───────────────
+// Stops follow the real twilight phases: astronomical (-18°), nautical (-12°),
+// civil (-6°), sunrise/sunset (0°), golden hour, then full day.
+const SKY=[
+  {a:-90,c:[[7,9,20],   [11,13,30],  [15,17,40]]},
+  {a:-18,c:[[10,13,34], [17,19,48],  [26,25,62]]},
+  {a:-12,c:[[15,21,52], [28,31,74],  [48,40,90]]},
+  {a:-6, c:[[28,42,86], [66,55,114], [132,74,106]]},
+  {a:-2, c:[[44,68,118],[122,80,120],[206,108,82]]},
+  {a:2,  c:[[60,100,152],[146,128,146],[232,150,94]]},
+  {a:10, c:[[50,106,174],[92,144,196],[172,188,210]]},
+  {a:30, c:[[34,92,172],[68,136,202],[138,182,220]]},
+  {a:90, c:[[26,84,166],[56,128,198],[124,174,216]]}
+];
+const lerp=(a,b,t)=>a+(b-a)*t;
+const mix3=(c1,c2,t)=>c1.map((v,i)=>Math.round(lerp(v,c2[i],t)));
+
+function skyFor(alt){
+  let i=0;while(i<SKY.length-2&&alt>SKY[i+1].a)i++;
+  const A=SKY[i],B=SKY[i+1];
+  const t=Math.max(0,Math.min(1,(alt-A.a)/(B.a-A.a)));
+  return A.c.map((c,k)=>mix3(c,B.c[k],t));
+}
+
+function applyTheme(code,day,alt){
+  let s=skyFor(alt);
+  // Cloud deck flattens and desaturates the sky; thicker deck = stronger veil
+  const veil=code>=95?.62:code>=71?.5:code>=51?.55
+    :(code===45||code===48)?.6:code===3?.42:code===2?.22:code===1?.08:0;
+  if(veil>0){
+    s=s.map(c=>{
+      const l=c[0]*.30+c[1]*.52+c[2]*.18;
+      const g=[l,l,l].map(v=>Math.round(v*(alt>0?.95:.72)));
+      return mix3(c,g,veil);
+    });
+  }
+  document.body.style.background=
+    `linear-gradient(180deg,rgb(${s[0]}) 0%,rgb(${s[1]}) 52%,rgb(${s[2]}) 100%)`;
+  document.body.style.backgroundAttachment='fixed';
+}
 
 // ── Utilities ─────────────────────────────────────────────────────────
 function uvLabel(v){if(v<=2)return'Low';if(v<=5)return'Moderate';if(v<=7)return'High';if(v<=10)return'Very High';return'Extreme'}
@@ -352,17 +627,164 @@ let unit=localStorage.getItem('unit')||'metric';
 let lastCity='';
 
 // ── Init ───────────────────────────────────────────────────────────────
-setUnit(unit,false);
-document.getElementById('si').focus();
+// (initialisation runs at the very end of this script, once every
+//  declaration below exists — see boot() at the bottom)
 
 function setUnit(u,refetch=true){
   unit=u;localStorage.setItem('unit',u);
   document.getElementById('bc').classList.toggle('on',u==='metric');
   document.getElementById('bf').classList.toggle('on',u==='imperial');
   if(refetch&&lastCity)fetchAll(lastCity);
+  renderSaved();          // saved-place temps follow the °C/°F toggle
 }
 
-function doSearch(){const c=document.getElementById('si').value.trim();if(c)fetchAll(c)}
+// ── Search bar collapse ────────────────────────────────────────────────
+const swEl=document.querySelector('.sw'),siEl=document.getElementById('si');
+let collapseT=null;
+// Width is driven in PIXELS from JS. A CSS transition between a percentage
+// (width:100%) and a pixel value never animates — it just sticks at the
+// starting size — so both endpoints have to be real lengths.
+function swFullWidth(){return (swEl.parentElement||document.body).clientWidth}
+// Hand-rolled tween. A CSS width transition off a percentage base never fires,
+// and a Web-Animations tween overrides the inline width while it runs — which
+// pins the bar open or shut if its timeline stalls. Driving the frames here
+// means the width is always plain inline style, and a backstop timer forces
+// the exact target even if the frame loop is interrupted.
+let swRAF=0,swTimer=0;
+function swSetWidth(to){
+  swEl.getAnimations?.().forEach(a=>a.cancel());
+  cancelAnimationFrame(swRAF);clearTimeout(swTimer);
+  const from=swEl.getBoundingClientRect().width;
+  const settle=()=>{swEl.style.width=to+'px'};
+  if(from===to||matchMedia('(prefers-reduced-motion:reduce)').matches){settle();return}
+  const t0=performance.now(),dur=280,ease=t=>1-Math.pow(1-t,3);
+  const step=now=>{
+    const p=Math.min(1,(now-t0)/dur);
+    swEl.style.width=(from+(to-from)*ease(p))+'px';
+    if(p<1)swRAF=requestAnimationFrame(step);else settle();
+  };
+  swRAF=requestAnimationFrame(step);
+  swTimer=setTimeout(settle,dur+140);   // never leave it stranded mid-tween
+}
+function expandSearch(){
+  clearTimeout(collapseT);
+  swEl.classList.remove('collapsed');
+  swSetWidth(swFullWidth());
+}
+function collapseSearch(){
+  // Only a part-typed query keeps it open; a focused-but-empty box shouldn't
+  if(document.activeElement===siEl&&siEl.value.trim())return;
+  if(getComputedStyle(document.getElementById('wx')).display==='none')return; // nothing loaded yet
+  if(document.activeElement===siEl)siEl.blur();
+  swEl.classList.add('collapsed');
+  swSetWidth(54);
+  hideSugg();
+}
+// Keep an expanded bar matched to the layout when the window changes size
+addEventListener('resize',()=>{
+  if(!swEl.classList.contains('collapsed')&&swEl.style.width)swEl.style.width=swFullWidth()+'px';
+});
+function scheduleCollapse(ms){clearTimeout(collapseT);collapseT=setTimeout(collapseSearch,ms)}
+siEl.addEventListener('focus',expandSearch);
+siEl.addEventListener('blur',()=>scheduleCollapse(300));
+swEl.addEventListener('mouseenter',expandSearch);
+swEl.addEventListener('mouseleave',()=>scheduleCollapse(150));
+swEl.addEventListener('click',()=>{
+  if(swEl.classList.contains('collapsed')){expandSearch();siEl.focus()}
+});
+
+// Come back on its own — no aiming at a small target required.
+// 1. Pointer anywhere in the band where the bar lives (not just on the circle)
+// The whole strip where the search box *would* be is live, even while the box
+// is collapsed to its circle — move the cursor anywhere across that row (or
+// above it, toward the header) and the box comes back.
+function nearSearch(x,y){
+  const r=swEl.getBoundingClientRect(),w=document.querySelector('.wrap').getBoundingClientRect();
+  return y>=0&&y<r.bottom+48&&x>w.left-70&&x<w.right+70;
+}
+function onPointerNear(e){
+  if(nearSearch(e.clientX,e.clientY))expandSearch();
+  else if(!swEl.classList.contains('collapsed'))scheduleCollapse(120);
+}
+addEventListener('pointermove',onPointerNear,{passive:true});
+addEventListener('mousemove',onPointerNear,{passive:true});   // belt and braces
+
+// Pointer left the window entirely — no more pointermove events will arrive
+document.addEventListener('mouseleave',()=>scheduleCollapse(80));
+
+// 2. Just start typing
+addEventListener('keydown',e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const tag=(document.activeElement||{}).tagName||'';
+  if(tag==='INPUT'||tag==='TEXTAREA')return;
+  if(e.key.length===1&&/\S/.test(e.key)){
+    expandSearch();siEl.value=e.key;siEl.focus();
+    siEl.dispatchEvent(new Event('input',{bubbles:true}));
+    e.preventDefault();
+  }
+});
+
+function doSearch(){
+  if(swEl.classList.contains('collapsed')){expandSearch();siEl.focus();return}
+  if(suggActive>=0&&suggData[suggActive]){selectSugg(suggData[suggActive]);return}
+  const c=document.getElementById('si').value.trim();if(c)fetchAll(c);
+  hideSugg();
+}
+
+// ── Suggestions ────────────────────────────────────────────────────────
+// var, not let: hideSugg() can fire from the collapse handlers before this
+// line runs, and a temporal-dead-zone error there would break the page.
+var suggTimer=null,suggActive=-1,suggData=[];
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+document.getElementById('si').addEventListener('input',e=>{
+  clearTimeout(suggTimer);
+  const q=e.target.value.trim();
+  if(q.length<2){hideSugg();return}
+  suggTimer=setTimeout(()=>fetchSugg(q),260);
+});
+
+document.getElementById('si').addEventListener('keydown',e=>{
+  const items=document.getElementById('sugg').querySelectorAll('.sugg-item');
+  if(!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();suggActive=Math.min(suggActive+1,items.length-1);updateActive(items)}
+  else if(e.key==='ArrowUp'){e.preventDefault();suggActive=Math.max(suggActive-1,-1);updateActive(items)}
+  else if(e.key==='Escape'){hideSugg()}
+});
+
+document.addEventListener('click',e=>{if(!e.target.closest('.sw'))hideSugg()});
+
+function updateActive(items){
+  items.forEach((it,i)=>it.classList.toggle('active',i===suggActive));
+  if(suggActive>=0&&suggData[suggActive])document.getElementById('si').value=suggData[suggActive].name;
+}
+function hideSugg(){document.getElementById('sugg').style.display='none';suggActive=-1;}
+
+async function fetchSugg(q){
+  try{
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`).then(r=>r.json());
+    suggData=r.results||[];
+    if(!suggData.length){hideSugg();return}
+    const el=document.getElementById('sugg');
+    el.innerHTML=suggData.map((s,i)=>{
+      const meta=[s.admin1,s.country].filter(Boolean).join(', ');
+      return `<div class="sugg-item" onmousedown="event.preventDefault();selectSugg(suggData[${i}])">
+        <div class="sugg-left"><div class="sugg-city">${esc(s.name)}</div><div class="sugg-meta">${esc(meta)}</div></div>
+        <span class="sugg-cc">${esc(s.country_code)}</span>
+      </div>`;
+    }).join('');
+    el.style.display='block';suggActive=-1;
+  }catch(e){hideSugg()}
+}
+
+function selectSugg(s){
+  document.getElementById('si').value=s.name;
+  hideSugg();lastCity=s.name;
+  show('ld');hide('err');hide('wx');hide('empty');
+  fetchByCoords(s.latitude,s.longitude,s.name,s.country_code,s.timezone)
+    .catch(e=>{console.error(e);showErr(`Error: ${e.message||'Could not load weather.'}`)})
+    .finally(()=>hide('ld'));
+}
 
 // ── Fetch ──────────────────────────────────────────────────────────────
 async function fetchAll(city){
@@ -409,6 +831,200 @@ async function getLocation(){
   );
 }
 
+// ── Saved places ───────────────────────────────────────────────────────
+let currentLoc=null;
+
+function getSaved(){
+  try{const a=JSON.parse(localStorage.getItem('savedLocs')||'[]');return Array.isArray(a)?a:[]}
+  catch(e){return[]}
+}
+function setSaved(a){try{localStorage.setItem('savedLocs',JSON.stringify(a))}catch(e){}}
+const sameSpot=(a,lat,lon)=>Math.abs(a.lat-lat)<.02&&Math.abs(a.lon-lon)<.02;
+function isSaved(lat,lon){return getSaved().some(s=>sameSpot(s,lat,lon))}
+
+function syncSaveBtn(){
+  const b=document.getElementById('save-btn');
+  if(!b||!currentLoc)return;
+  const on=isSaved(currentLoc.lat,currentLoc.lon);
+  b.classList.toggle('on',on);
+  b.querySelector('svg').setAttribute('fill',on?'currentColor':'none');
+  b.title=on?'Saved — tap to remove':'Save this place';
+}
+
+function toggleSave(){
+  if(!currentLoc)return;
+  const list=getSaved();
+  const i=list.findIndex(s=>sameSpot(s,currentLoc.lat,currentLoc.lon));
+  if(i>=0)list.splice(i,1);
+  else list.push({name:currentLoc.name,cc:currentLoc.country_code||'',
+                  lat:currentLoc.lat,lon:currentLoc.lon,tz:currentLoc.timezone||'auto'});
+  setSaved(list);syncSaveBtn();renderSaved();renderRecents();
+}
+
+function removeSaved(ev,lat,lon){
+  ev.stopPropagation();
+  setSaved(getSaved().filter(s=>!sameSpot(s,lat,lon)));
+  renderSaved();renderRecents();syncSaveBtn();
+}
+
+function openSaved(lat,lon,name,cc,tz){
+  document.getElementById('si').value=name;
+  lastCity=name;
+  show('ld');hide('err');hide('wx');hide('empty');
+  fetchByCoords(lat,lon,name,cc,tz)
+    .catch(e=>{console.error(e);showErr(`Error: ${e.message||'Could not load weather.'}`)})
+    .finally(()=>hide('ld'));
+}
+
+// ── Recents ────────────────────────────────────────────────────────────
+// Every place you actually look up is remembered automatically.
+function getRecents(){
+  try{const a=JSON.parse(localStorage.getItem('recentLocs')||'[]');return Array.isArray(a)?a:[]}
+  catch(e){return[]}
+}
+function setRecents(a){try{localStorage.setItem('recentLocs',JSON.stringify(a))}catch(e){}}
+
+function addRecent(loc){
+  if(loc.lat==null||loc.lon==null)return;
+  const list=getRecents().filter(r=>!sameSpot(r,loc.lat,loc.lon));   // move to front, no dupes
+  list.unshift({name:loc.name,cc:loc.country_code||'',lat:loc.lat,lon:loc.lon,tz:loc.timezone||'auto'});
+  setRecents(list.slice(0,8));
+}
+
+function clearRecents(){setRecents([]);renderRecents()}
+
+function renderRecents(){
+  const wrap=document.getElementById('rec-wrap'),el=document.getElementById('rec-chips');
+  if(!wrap||!el)return;
+  const saved=getSaved();
+  // A place you've already starred doesn't need to appear twice on one screen
+  const list=getRecents().filter(r=>!saved.some(s=>sameSpot(s,r.lat,r.lon)));
+  if(!list.length){wrap.style.display='none';el.innerHTML='';return}
+  wrap.style.display='block';
+  el.innerHTML=list.map(r=>`<div class="rec-chip" onclick="openSaved(${r.lat},${r.lon},${JSON.stringify(r.name).replace(/"/g,'&quot;')},'${esc(r.cc)}','${esc(r.tz)}')">${esc(r.name)}<span class="cc">${esc(r.cc)}</span></div>`).join('');
+}
+
+// Start screen list, with a live temperature fetched for each saved place
+async function renderSaved(){
+  const list=getSaved(),wrap=document.getElementById('saved-wrap'),el=document.getElementById('saved-list');
+  if(!wrap||!el)return;
+  if(!list.length){wrap.style.display='none';el.innerHTML='';return}
+  wrap.style.display='block';
+  const isM=unit==='metric',tU=isM?'°C':'°F';
+  el.innerHTML=list.map(s=>`
+    <div class="saved-item" onclick="openSaved(${s.lat},${s.lon},${JSON.stringify(s.name).replace(/"/g,'&quot;')},'${esc(s.cc)}','${esc(s.tz)}')">
+      <div class="saved-ico" data-ico="${s.lat},${s.lon}">⏳</div>
+      <div class="saved-main">
+        <div class="saved-name">${esc(s.name)}</div>
+        <div class="saved-sub" data-sub="${s.lat},${s.lon}">Loading…</div>
+      </div>
+      <div class="saved-temp" data-temp="${s.lat},${s.lon}">—</div>
+      <button class="saved-del" onclick="removeSaved(event,${s.lat},${s.lon})" title="Remove" aria-label="Remove">✕</button>
+    </div>`).join('');
+
+  await Promise.all(list.map(async s=>{
+    try{
+      const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}`
+        +`&current=temperature_2m,weather_code,is_day&temperature_unit=${isM?'celsius':'fahrenheit'}`
+        +`&timezone=${encodeURIComponent(s.tz||'auto')}`).then(x=>x.json());
+      const c=r.current;if(!c)return;
+      const k=`${s.lat},${s.lon}`;
+      const ico=el.querySelector(`[data-ico="${k}"]`),sub=el.querySelector(`[data-sub="${k}"]`),tp=el.querySelector(`[data-temp="${k}"]`);
+      if(ico)ico.textContent=wicon(c.weather_code,c.is_day===1);
+      if(sub)sub.textContent=WD[c.weather_code]||'';
+      if(tp)tp.textContent=Math.round(c.temperature_2m)+tU;
+    }catch(e){
+      const k=`${s.lat},${s.lon}`;
+      const sub=el.querySelector(`[data-sub="${k}"]`);if(sub)sub.textContent='Unavailable';
+      const ico=el.querySelector(`[data-ico="${k}"]`);if(ico)ico.textContent='⚠️';
+    }
+  }));
+}
+
+// ── Multi-model ensemble ───────────────────────────────────────────────
+// Independent national forecast models. Averaging several ("ensemble
+// forecasting") is measurably more accurate than trusting any single one,
+// and their spread is a direct read on how confident the forecast is.
+const MODELS=[
+  ['ecmwf_ifs025','ECMWF','EU'],
+  ['gfs_seamless','NOAA GFS','US'],
+  ['icon_seamless','DWD ICON','DE'],
+  ['ukmo_seamless','UK Met Office','GB'],
+  ['gem_seamless','ECCC GEM','CA'],
+  ['meteofrance_seamless','Météo-France','FR'],
+  ['jma_seamless','JMA','JP']
+];
+
+function nearestIdx(times,toMs){
+  let idx=0,best=Infinity;
+  times.forEach((t,i)=>{const d=Math.abs(toMs(t)-Date.now());if(d<best){best=d;idx=i}});
+  return idx;
+}
+
+async function fetchEnsemble(lat,lon,tU){
+  const ids=MODELS.map(m=>m[0]).join(',');
+  const [om,mn]=await Promise.all([
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&models=${ids}&forecast_days=1&temperature_unit=${tU}`)
+      .then(r=>r.json()).catch(()=>null),
+    // MET Norway is a genuinely separate provider, not an Open-Meteo model
+    fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${(+lat).toFixed(4)}&lon=${(+lon).toFixed(4)}`)
+      .then(r=>r.json()).catch(()=>null)
+  ]);
+  const out=[];
+  if(om?.hourly?.time?.length){
+    const i=nearestIdx(om.hourly.time,t=>new Date(t+'Z').getTime());
+    for(const[id,nm,cc] of MODELS){
+      const v=om.hourly['temperature_2m_'+id];
+      if(v&&v[i]!=null)out.push({name:nm,cc,temp:v[i]});
+    }
+  }
+  const ts=mn?.properties?.timeseries;
+  if(ts?.length){
+    const i=nearestIdx(ts.map(s=>s.time),t=>new Date(t).getTime());
+    let c=ts[i]?.data?.instant?.details?.air_temperature;
+    if(c!=null){
+      if(tU==='fahrenheit')c=c*9/5+32;
+      out.push({name:'MET Norway',cc:'NO',temp:c});
+    }
+  }
+  return out;
+}
+
+function renderModels(models,isM,tU){
+  const card=document.getElementById('models-card');
+  if(models.length<2){card.style.display='none';return null}
+  card.style.display='block';
+  const temps=models.map(m=>m.temp);
+  const mean=temps.reduce((a,b)=>a+b,0)/temps.length;
+  const lo=Math.min(...temps),hi=Math.max(...temps),spread=hi-lo;
+  // Thresholds in °C, scaled for °F
+  const k=isM?1:1.8;
+  const conf=spread<1.2*k?['Very high','#4caf50']:spread<2.5*k?['High','#8bc34a']
+    :spread<4.5*k?['Moderate','#ffb300']:['Low','#ff7043'];
+
+  document.getElementById('mdl-count').textContent=`${models.length} sources`;
+  document.getElementById('mdl-mean').textContent=mean.toFixed(1);
+  document.getElementById('mdl-unit').textContent=tU;
+  document.getElementById('mdl-conf').innerHTML=
+    `<span style="color:${conf[1]};font-weight:600">${conf[0]}</span> confidence`;
+  document.getElementById('mdl-spread').textContent=
+    spread<0.05?'All models agree exactly'
+    :`Models span ${lo.toFixed(1)}${tU} to ${hi.toFixed(1)}${tU} — a ${spread.toFixed(1)}° spread`;
+
+  const range=spread||1;
+  document.getElementById('mdl-list').innerHTML=models
+    .slice().sort((a,b)=>a.temp-b.temp)
+    .map(m=>{
+      const pct=((m.temp-lo)/range)*100;
+      return `<div class="mdl-row">
+        <div class="mdl-name"><span class="n">${esc(m.name)}</span><span class="mdl-cc">${esc(m.cc)}</span></div>
+        <div class="mdl-track"><div class="mdl-dot" style="left:${pct.toFixed(1)}%"></div></div>
+        <div class="mdl-temp">${m.temp.toFixed(1)}°</div>
+      </div>`;
+    }).join('');
+  return{mean,spread,count:models.length};
+}
+
 async function fetchByCoords(lat,lon,name,country_code,timezone){
   const isM=unit==='metric';
   const tU=isM?'celsius':'fahrenheit';
@@ -421,6 +1037,23 @@ async function fetchByCoords(lat,lon,name,country_code,timezone){
   ]);
   const resolvedTz=w.timezone||timezone||'UTC';
   render(w,aq,{name,country_code,timezone:resolvedTz,lat,lon},isM,wU,pU);
+  // Ensemble loads independently so a slow model never delays the main view
+  fetchEnsemble(lat,lon,tU)
+    .then(models=>{
+      const s=renderModels(models,isM,isM?'°C':'°F');
+      if(s)applyConsensus(s,isM?'°C':'°F');
+      setupReveal();
+    })
+    .catch(e=>console.error('ensemble',e));
+}
+
+// Blend the headline temperature toward the multi-model consensus
+function applyConsensus(s,tU){
+  const el=document.getElementById('htemp');
+  if(!el)return;
+  el.textContent=Math.round(s.mean)+tU;
+  const note=document.getElementById('hconsensus');
+  if(note)note.textContent=`Consensus of ${s.count} forecast models`;
 }
 
 // ── Render ─────────────────────────────────────────────────────────────
@@ -433,7 +1066,10 @@ function render(w,aq,loc,isM,wU,pU){
   const visU=isM?'km':'mi';
   const pUnit=isM?'mm':'in';
 
-  applyTheme(code,day);
+  currentLoc=loc;syncSaveBtn();
+  addRecent(loc);renderRecents();
+  const sunNow=solarPos(new Date(),loc.lat,loc.lon);
+  applyTheme(code,day,sunNow.alt);
 
   // Hero
   document.getElementById('hcity').textContent=loc.name;
@@ -509,8 +1145,9 @@ function render(w,aq,loc,isM,wU,pU){
     document.getElementById('aqi-lbl').textContent='Unavailable';
   }
 
-  // Sunrise / Sunset
-  renderSun(d.sunrise[0],d.sunset[0],loc.timezone);
+  // Sun path
+  renderSun(d,loc);
+  setFx(code,day,kmh,dir);
 
   // Forecast
   renderForecast(d,isM,tU,pUnit);
@@ -525,6 +1162,7 @@ function render(w,aq,loc,isM,wU,pU){
   document.getElementById('c-bf').textContent=beaufort(kmh);
 
   // Wind map
+  document.getElementById('map-wrap')?.classList.remove('live');  // re-arm for each new city
   document.getElementById('wmap').src=`https://embed.windy.com/embed2.html?lat=${loc.lat}&lon=${loc.lon}&detailLat=${loc.lat}&detailLon=${loc.lon}&zoom=7&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1`;
 
   // Moon
@@ -537,42 +1175,518 @@ function render(w,aq,loc,isM,wU,pU){
   document.getElementById('illum-fill').style.width=moon.illum+'%';
 
   show('wx');hide('empty');
+  setupReveal();
+  siEl.blur();scheduleCollapse(1500);
 }
 
-function renderSun(sunrise,sunset,tz){
-  document.getElementById('sr-time').textContent=fmtIsoTime(sunrise);
-  document.getElementById('ss-time').textContent=fmtIsoTime(sunset);
+// ── Scroll reveal ──────────────────────────────────────────────────────
+const revealIO=('IntersectionObserver'in window)?new IntersectionObserver(es=>{
+  for(const e of es)if(e.isIntersecting){e.target.classList.add('in');revealIO.unobserve(e.target)}
+},{rootMargin:'0px 0px -8% 0px',threshold:.06}):null;
 
-  const[sh,sm]=sunrise.split('T')[1].split(':').map(Number);
-  const[eh,em]=sunset.split('T')[1].split(':').map(Number);
-  const srMin=sh*60+sm,ssMin=eh*60+em;
+function setupReveal(){
+  const els=document.querySelectorAll('#wx .card, #wx .tile');
+  els.forEach((el,i)=>{
+    el.classList.remove('in');
+    el.classList.add('reveal');
+    el.style.transitionDelay=Math.min(i,8)*45+'ms';
+  });
+  if(!revealIO){els.forEach(el=>el.classList.add('in'));return}
+  els.forEach(el=>revealIO.observe(el));
+  // Safety net: if the observer never fires (odd viewport geometry), never
+  // leave the user staring at invisible cards.
+  setTimeout(()=>{
+    if(!document.querySelector('#wx .reveal.in'))els.forEach(el=>el.classList.add('in'));
+  },1500);
+}
+
+// ── Weather particle FX ────────────────────────────────────────────────
+const fxC=document.getElementById('fx'),fxX=fxC.getContext('2d');
+const REDUCED=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let fxP=[],fxMode='',fxRAF=0,fxWind=0,fxT=0,fxBolt=0;
+// Stars are their own night layer, independent of the weather-particle mode,
+// so a cloudy or rainy night still gets a sky.
+let fxStars=[],starCloud=0,starNight=0;
+const starAmt=()=>starCloud*starNight;
+
+let starW=0,starsReady=false;
+function buildStars(){
+  const R=Math.random;
+  // Built ONCE, in normalised 0..1 coordinates, so resizing never shuffles the
+  // sky — the stars stay put and only twinkle.
+  if(starsReady)return;
+  starsReady=true;fxStars=[];
+  for(let i=0;i<190;i++){
+    // Spectral tint: most stars read white, a few blue-white or warm
+    const k=R();
+    const col=k<.10?[255,206,158]:k<.24?[176,202,255]:k<.34?[255,238,210]:[255,255,255];
+    // Brightness follows a steep curve — many faint, a handful bright
+    const m=Math.pow(R(),2.4);
+    fxStars.push({nx:R(),ny:R()*.92,r:.45+m*2.1,ph:R()*6.28,
+      sp:.4+R()*1.6,col,mag:.25+m*.75,tw:.35+R()*.5});
+  }
+}
+
+function fxResize(){
+  const d=Math.min(devicePixelRatio||1,2);
+  if(!innerWidth||!innerHeight)return;
+  starW=innerWidth;
+  fxC.width=innerWidth*d;fxC.height=innerHeight*d;
+  fxX.setTransform(d,0,0,d,0,0);
+  buildStars();
+  if(fxMode)fxBuild();
+}
+addEventListener('resize',fxResize);fxResize();
+function fxStart(){if(!fxRAF&&!document.hidden){fxT=0;fxRAF=requestAnimationFrame(fxTick)}}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){cancelAnimationFrame(fxRAF);fxRAF=0}
+  else fxStart();
+});
+
+function setFx(code,isDay,windKmh,windDeg){
+  // Wind blows FROM windDeg, so screen drift is the opposite horizontal component
+  fxWind=-Math.sin((windDeg||0)*Math.PI/180)*Math.min((windKmh||0)/38,1.7);
+  // How much of the starfield the sky lets through
+  starCloud=REDUCED?0
+    :code===0?1:code===1?.9:code===2?.6:code===3?.25
+    :(code===45||code===48)?.05
+    :code>=51?.08:.6;
+  const m=REDUCED?''
+    :code>=95?'storm'
+    :(code>=71&&code<=77)||code===85||code===86?'snow'
+    :(code>=51&&code<=67)||(code>=80&&code<=82)?'rain'
+    :(code===45||code===48)?'fog'
+    :(code>=1&&code<=3)?'clouds':'';
+  if(m===fxMode)return;
+  fxMode=m;fxBuild();
+  fxStart();
+}
+
+function fxBuild(){
+  fxP=[];const W=innerWidth,H=innerHeight,R=Math.random;
+  const dense=Math.min(1,W/900);
+  if(fxMode==='rain'||fxMode==='storm'){
+    const n=Math.round((fxMode==='storm'?240:145)*dense);
+    // z = depth 0..1; near drops fall faster, streak longer, read brighter
+    for(let i=0;i<n;i++){const z=R();
+      fxP.push({x:R()*W,y:R()*H,z,l:(5+z*19)*1,v:250+z*470,o:(.08+z*.34),w:.6+z*1.1});}
+  }else if(fxMode==='snow'){
+    for(let i=0;i<Math.round(115*dense);i++){const z=R();
+      fxP.push({x:R()*W,y:R()*H,z,r:.8+z*2.9,v:12+z*52,sw:10+R()*32,ph:R()*6.28,o:.22+z*.6});}
+  }else if(fxMode==='fog'){
+    for(let i=0;i<14;i++)fxP.push({x:R()*W,y:R()*H,r:100+R()*180,v:7+R()*16,o:.03+R()*.05});
+  }else if(fxMode==='clouds'){
+    for(let i=0;i<9;i++)fxP.push({x:R()*W,y:R()*H*.65,r:80+R()*150,v:5+R()*13,o:.022+R()*.038});
+  }
+}
+
+function fxTick(t){
+  const dt=fxT?Math.min((t-fxT)/1000,.05):.016;fxT=t;
+  // Self-heal if the canvas was sized before the viewport was measurable
+  if(innerWidth&&(starW!==innerWidth||!fxC.width))fxResize();
+  const W=innerWidth,H=innerHeight;
+  fxX.clearRect(0,0,W,H);
+
+  const sa=starAmt();
+  if(sa>0.01){
+    for(const p of fxStars){
+      p.ph+=dt*p.sp;
+      const px=p.nx*W,py=p.ny*H;
+      // Scintillation is shallower on bright stars, stronger on faint ones
+      const a=p.mag*(1-p.tw+p.tw*(Math.sin(p.ph)*.5+.5))*sa;
+      if(p.r>1.5){                       // bright stars carry a small halo
+        const gr=fxX.createRadialGradient(px,py,0,px,py,p.r*3.6);
+        gr.addColorStop(0,`rgba(${p.col},${(a*.5).toFixed(3)})`);
+        gr.addColorStop(1,`rgba(${p.col},0)`);
+        fxX.fillStyle=gr;fxX.beginPath();fxX.arc(px,py,p.r*3.6,0,6.283);fxX.fill();
+      }
+      fxX.fillStyle=`rgba(${p.col},${a.toFixed(3)})`;
+      fxX.beginPath();fxX.arc(px,py,p.r,0,6.283);fxX.fill();
+    }
+  }
+  drawSkyBody(fxX,t);
+
+  if(fxMode==='rain'||fxMode==='storm'){
+    fxX.lineCap='round';
+    for(const p of fxP){
+      const dx=fxWind*260*(.45+p.z*.75);   // near drops feel the wind more
+      fxX.lineWidth=p.w;
+      fxX.strokeStyle=`rgba(178,216,244,${p.o})`;
+      fxX.beginPath();fxX.moveTo(p.x,p.y);fxX.lineTo(p.x+dx*.05,p.y+p.l);fxX.stroke();
+      p.y+=p.v*dt;p.x+=dx*dt;
+      if(p.y>H){p.y=-24;p.x=Math.random()*W}
+      if(p.x>W+40)p.x=-40;else if(p.x<-40)p.x=W+40;
+    }
+    if(fxMode==='storm'){
+      fxBolt-=dt;
+      if(fxBolt<=0){fxFlash();fxBolt=3.5+Math.random()*7.5}
+    }
+  }else if(fxMode==='snow'){
+    for(const p of fxP){
+      p.ph+=dt*1.1;
+      const x=p.x+Math.sin(p.ph)*p.sw;
+      fxX.fillStyle=`rgba(255,255,255,${p.o})`;
+      fxX.beginPath();fxX.arc(x,p.y,p.r,0,6.283);fxX.fill();
+      p.y+=p.v*dt;p.x+=fxWind*46*dt;
+      if(p.y>H+6){p.y=-8;p.x=Math.random()*W}
+      if(p.x>W+60)p.x=-60;else if(p.x<-60)p.x=W+60;
+    }
+  }else if(fxMode==='fog'||fxMode==='clouds'){
+    for(const p of fxP){
+      const gr=fxX.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+      gr.addColorStop(0,`rgba(255,255,255,${p.o})`);
+      gr.addColorStop(1,'rgba(255,255,255,0)');
+      fxX.fillStyle=gr;
+      fxX.beginPath();fxX.arc(p.x,p.y,p.r,0,6.283);fxX.fill();
+      p.x+=(p.v+fxWind*22)*dt;
+      if(p.x-p.r>W)p.x=-p.r;else if(p.x+p.r<0)p.x=W+p.r;
+    }
+  }
+  if(!fxMode&&!skyBody&&sa<=0.01){fxRAF=0;return}
+  fxRAF=requestAnimationFrame(fxTick);
+}
+
+function fxFlash(){
+  const f=document.getElementById('flash');
+  const pop=(o,fade)=>{f.style.transition='none';f.style.opacity=o;
+    requestAnimationFrame(()=>{f.style.transition=`opacity ${fade}s ease-out`;f.style.opacity='0'})};
+  pop('.55',.45);
+  setTimeout(()=>pop('.3',.35),120);
+}
+
+// ── Background sky body (sun / moon) ───────────────────────────────────
+let skyBody=null;
+
+// Where the body sits horizontally: east on the left, west on the right,
+// looking toward the equator (south up north, north down south).
+function azFrac(az,lat){
+  const t=lat>=0?((az-90)%360+360)%360:((90-az)%360+360)%360;
+  return Math.max(0,Math.min(1,t/180));
+}
+
+function drawSkyBody(g,t){
+  if(!skyBody)return;
+  const W=innerWidth,H=innerHeight;
+  const b=skyBody;
+  // Sun and Moon subtend almost the same angle from Earth (~0.5°) — the
+  // coincidence that makes total eclipses possible — so they share a radius.
+  const r=Math.max(46,Math.min(W,H)*.115);
+  const x=W*(.1+.8*b.fx);
+  // Kept in the top band so it's always visible above the cards; altitude still
+  // drives how high within that band it sits.
+  const y=H*(.17-.10*Math.max(0,Math.min(1,b.fy/80)));
+  const op=b.op;
+  if(b.type==='sun'){
+    const R=r*(1+Math.sin(t/1600)*.02);
+    // Air mass rises steeply near the horizon: more extinction, redder light
+    const q=Math.max(0,Math.min(1,1-b.fy/20));
+    // Refraction lifts the lower limb more than the upper, squashing the disc
+    // into a visible oval within a few degrees of the horizon
+    const flat=1-.22*Math.max(0,Math.min(1,1-b.fy/12));
+    const core=mix3([255,253,245],[255,146,64],q*.92);
+    const midc=mix3([255,238,178],[252,116,44],q*.9);
+    const rim =mix3([255,206,104],[224,72,32], q*.88);
+
+    // Broad sky glow — Mie scattering carries light far from the disc
+    let gr=g.createRadialGradient(x,y,0,x,y,R*7);
+    gr.addColorStop(0,`rgba(${rim},${(.17+.07*q)*op})`);
+    gr.addColorStop(.18,`rgba(${rim},${.075*op})`);
+    gr.addColorStop(.55,`rgba(${rim},${.022*op})`);
+    gr.addColorStop(1,`rgba(${rim},0)`);
+    g.fillStyle=gr;g.beginPath();g.arc(x,y,R*7,0,6.283);g.fill();
+
+    g.save();
+    g.translate(x,y);g.scale(1,flat);
+
+    // Tight aureole hugging the disc
+    gr=g.createRadialGradient(0,0,R*.85,0,0,R*2.7);
+    gr.addColorStop(0,`rgba(${midc},${.32*op})`);
+    gr.addColorStop(.45,`rgba(${rim},${.11*op})`);
+    gr.addColorStop(1,`rgba(${rim},0)`);
+    g.fillStyle=gr;g.beginPath();g.arc(0,0,R*2.7,0,6.283);g.fill();
+
+    // Disc with solar limb darkening, I(μ)=1−u(1−μ) with u≈0.6: unlike the
+    // Moon, the Sun genuinely fades toward its edge
+    gr=g.createRadialGradient(0,0,0,0,0,R);
+    gr.addColorStop(0,`rgba(${core},${.95*op})`);
+    gr.addColorStop(.60,`rgba(${core},${.90*op})`);
+    gr.addColorStop(.80,`rgba(${midc},${.82*op})`);
+    gr.addColorStop(.93,`rgba(${midc},${.69*op})`);
+    gr.addColorStop(.99,`rgba(${rim},${.54*op})`);
+    gr.addColorStop(1,`rgba(${rim},0)`);
+    g.fillStyle=gr;g.beginPath();g.arc(0,0,R,0,6.283);g.fill();
+
+    // Differential refraction reddens the lower limb of a low Sun
+    if(q>.25){
+      g.save();g.beginPath();g.arc(0,0,R,0,6.283);g.clip();
+      const vg=g.createLinearGradient(0,-R,0,R);
+      vg.addColorStop(0,'rgba(206,58,26,0)');
+      vg.addColorStop(.5,'rgba(206,58,26,0)');
+      vg.addColorStop(1,`rgba(198,52,22,${(.30*(q-.25)/.75*op).toFixed(3)})`);
+      g.fillStyle=vg;g.fillRect(-R,-R,R*2,R*2);
+      g.restore();
+    }
+    g.restore();
+  }else{
+    let gr=g.createRadialGradient(x,y,0,x,y,r*3.8);
+    gr.addColorStop(0,`rgba(214,226,255,${.20*op})`);
+    gr.addColorStop(.4,`rgba(190,205,245,${.07*op})`);
+    gr.addColorStop(1,'rgba(180,200,255,0)');
+    g.fillStyle=gr;g.beginPath();g.arc(x,y,r*3.8,0,6.283);g.fill();
+
+    // The terminator is an ellipse, not an offset circle. Sweep the lit limb
+    // (a semicircle) then close it with an ellipse whose width tracks the phase:
+    // bulging outward when gibbous, cutting inward when crescent.
+    const f=Math.max(0,Math.min(1,b.illum/100)),tt=2*f-1;
+    const tex=moonTexture();
+    g.save();
+    g.translate(x,y);
+    if(!b.waxing)g.scale(-1,1);          // waning moons are lit on the other limb
+
+    // Earthshine — sunlight bounced off Earth makes the dark side faintly visible
+    g.globalAlpha=.13*op;
+    g.drawImage(tex,-r,-r,r*2,r*2);
+
+    g.globalAlpha=op;
+    g.beginPath();
+    g.arc(0,0,r,-Math.PI/2,Math.PI/2,false);
+    g.ellipse(0,0,r*Math.abs(tt),r,0,Math.PI/2,-Math.PI/2,tt<0);
+    g.closePath();
+    g.clip();
+    g.drawImage(tex,-r,-r,r*2,r*2);
+
+    // Sunlight grazes the surface near the terminator, so it dims there rather
+    // than ending at a hard edge
+    const termX=-r*tt;
+    const tg=g.createLinearGradient(termX,0,termX+r*.55,0);
+    tg.addColorStop(0,'rgba(6,8,16,.62)');
+    tg.addColorStop(.55,'rgba(6,8,16,.16)');
+    tg.addColorStop(1,'rgba(6,8,16,0)');
+    g.fillStyle=tg;g.fillRect(-r,-r,r*2,r*2);
+    g.globalAlpha=1;
+    g.restore();
+  }
+}
+
+// ── Lunar surface texture (built once, then reused every frame) ────────
+let moonTex=null;
+function moonTexture(){
+  if(moonTex)return moonTex;
+  const S=340,R=S/2;
+  const c=document.createElement('canvas');c.width=c.height=S;
+  const g=c.getContext('2d');
+  g.translate(R,R);
+  g.beginPath();g.arc(0,0,R,0,6.283);g.clip();
+
+  // Highlands. The Moon backscatters strongly, so a full moon reads almost
+  // flat rather than like a shaded ball — only a slight darkening at the limb.
+  let gr=g.createRadialGradient(0,0,R*.25,0,0,R);
+  gr.addColorStop(0,'#eceef2');
+  gr.addColorStop(.84,'#dfe1e7');
+  gr.addColorStop(1,'#c4c7d0');
+  g.fillStyle=gr;g.fillRect(-R,-R,S,S);
+
+  // Mottled regolith
+  for(let i=0;i<180;i++){
+    const a=Math.random()*6.283,d=Math.sqrt(Math.random())*R*.98;
+    const x=Math.cos(a)*d,y=Math.sin(a)*d,rr=R*(.02+Math.random()*.07);
+    g.fillStyle=`rgba(${Math.random()<.5?'255,255,255':'148,151,162'},${(.02+Math.random()*.05).toFixed(3)})`;
+    g.beginPath();g.arc(x,y,rr,0,6.283);g.fill();
+  }
+
+  // The maria — dark basalt seas in their real near-side arrangement.
+  // This pattern is what makes a moon read as *the* Moon.
+  for(const[mx,my,mr,op] of [
+    [-.34,-.36,.34,.60],  // Imbrium
+    [ .06,-.30,.21,.62],  // Serenitatis
+    [ .30,-.10,.23,.62],  // Tranquillitatis
+    [ .63,-.26,.12,.58],  // Crisium
+    [ .50, .12,.15,.55],  // Fecunditatis
+    [ .34, .26,.10,.52],  // Nectaris
+    [-.20, .34,.19,.50],  // Nubium
+    [-.44, .34,.12,.48],  // Humorum
+    [-.66,-.02,.31,.52],  // Oceanus Procellarum
+    [-.26,-.68,.24,.40]   // Frigoris
+  ]){
+    const gx=mx*R,gy=my*R,grr=mr*R;
+    const mg=g.createRadialGradient(gx,gy,0,gx,gy,grr);
+    mg.addColorStop(0,`rgba(104,110,130,${op})`);
+    mg.addColorStop(.62,`rgba(112,118,138,${op*.8})`);
+    mg.addColorStop(1,'rgba(116,122,142,0)');
+    g.fillStyle=mg;g.beginPath();g.arc(gx,gy,grr,0,6.283);g.fill();
+  }
+
+  // Tycho's ray system — bright ejecta streaks across the southern highlands
+  const tx=-.12*R,ty=.60*R;
+  for(let i=0;i<20;i++){
+    const a=Math.random()*6.283,len=R*(.3+Math.random()*.6);
+    g.strokeStyle=`rgba(255,255,255,${(.08+Math.random()*.12).toFixed(3)})`;
+    g.lineWidth=R*(.005+Math.random()*.013);
+    g.beginPath();g.moveTo(tx,ty);g.lineTo(tx+Math.cos(a)*len,ty+Math.sin(a)*len);g.stroke();
+  }
+
+  // Bright rayed craters: Tycho, Copernicus, Aristarchus
+  for(const[cx,cy,cr] of [[-.12,.60,.045],[-.28,-.04,.034],[-.58,-.16,.024]]){
+    const x=cx*R,y=cy*R,rr=cr*R;
+    g.fillStyle='rgba(255,255,255,.45)';g.beginPath();g.arc(x,y,rr*1.7,0,6.283);g.fill();
+    g.fillStyle='rgba(196,200,210,.9)';g.beginPath();g.arc(x,y,rr,0,6.283);g.fill();
+  }
+
+  // Scattered craters with lit rims and shadowed floors
+  for(let i=0;i<30;i++){
+    const a=Math.random()*6.283,d=Math.sqrt(Math.random())*R*.93;
+    const x=Math.cos(a)*d,y=Math.sin(a)*d,rr=R*(.012+Math.random()*.032);
+    g.fillStyle='rgba(118,122,138,.34)';g.beginPath();g.arc(x,y,rr,0,6.283);g.fill();
+    g.fillStyle='rgba(255,255,255,.20)';g.beginPath();g.arc(x-rr*.26,y-rr*.26,rr*.78,0,6.283);g.fill();
+  }
+  moonTex=c;return c;
+}
+
+// ── Lunar position (low-precision ephemeris) ───────────────────────────
+function moonPos(date,lat,lon){
+  const R=Math.PI/180;
+  const d=date.getTime()/86400000+2440587.5-2451545.0;
+  const L=(218.316+13.176396*d)*R;
+  const M=(134.963+13.064993*d)*R;
+  const F=(93.272+13.229350*d)*R;
+  const lam=L+6.289*R*Math.sin(M);
+  const bet=5.128*R*Math.sin(F);
+  const eps=23.4397*R;
+  const ra=Math.atan2(Math.sin(lam)*Math.cos(eps)-Math.tan(bet)*Math.sin(eps),Math.cos(lam));
+  const dec=Math.asin(Math.sin(bet)*Math.cos(eps)+Math.cos(bet)*Math.sin(eps)*Math.sin(lam));
+  const gmst=(18.697374558+24.06570982441908*d)%24;
+  const H=((gmst*15+lon)*R)-ra;
+  const p=lat*R;
+  const alt=Math.asin(Math.sin(p)*Math.sin(dec)+Math.cos(p)*Math.cos(dec)*Math.cos(H));
+  const az=Math.atan2(-Math.sin(H),Math.tan(dec)*Math.cos(p)-Math.sin(p)*Math.cos(H));
+  return{alt:alt/R,az:((az/R)%360+360)%360};
+}
+
+// ── Solar position (NOAA low-precision algorithm) ──────────────────────
+function solarPos(date,lat,lon){
+  const R=Math.PI/180;
+  const n=date.getTime()/86400000+2440587.5-2451545.0;
+  const L=(280.460+0.9856474*n)%360;
+  const g=((357.528+0.9856003*n)%360)*R;
+  const lam=(L+1.915*Math.sin(g)+0.020*Math.sin(2*g))*R;
+  const eps=(23.439-0.0000004*n)*R;
+  const dec=Math.asin(Math.sin(eps)*Math.sin(lam));
+  const ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
+  const gmst=(18.697374558+24.06570982441908*n)%24;
+  const H=((gmst*15+lon)*R)-ra;
+  const p=lat*R;
+  const alt=Math.asin(Math.sin(p)*Math.sin(dec)+Math.cos(p)*Math.cos(dec)*Math.cos(H));
+  const az=Math.atan2(-Math.sin(H),Math.tan(dec)*Math.cos(p)-Math.sin(p)*Math.cos(H));
+  return{alt:alt/R,az:((az/R)%360+360)%360,dec:dec/R};
+}
+
+// Sky palette by true solar elevation
+function skyColors(a){
+  if(a>14) return['#0d2f63','#1f5d9e','#5d97c9'];
+  if(a>6)  return['#15375f','#3d72a0','#d99a63'];
+  if(a>0)  return['#1d3b63','#7d5a8a','#f2985a'];
+  if(a>-6) return['#141d3d','#4a3a6b','#c05e3d'];
+  if(a>-12)return['#0a1130','#1c2450','#3b3760'];
+  return['#050a1c','#0a1130','#141d3d'];
+}
+
+const ARC={cx:160,cy:130,rx:134};
+let starsBuilt=false;
+
+function renderSun(d,loc){
+  const G=id=>document.getElementById(id);
+  const sunrise=d.sunrise?.[0],sunset=d.sunset?.[0],nextRise=d.sunrise?.[1];
+  const now=new Date();
+  const sp=solarPos(now,loc.lat,loc.lon);
+  const alt=sp.alt;
+
+  // Arc height reflects the sun's ACTUAL maximum elevation today
+  const maxEl=Math.max(2,Math.min(90,90-Math.abs(loc.lat-sp.dec)));
+  const ry=Math.max(16,maxEl/90*96);
+  const{cx,cy,rx}=ARC;
+  const pathD=`M ${cx-rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx+rx} ${cy}`;
+  G('arc-bg').setAttribute('d',pathD);
+  G('arc-prog').setAttribute('d',pathD);
+
+  // Sky gradient from real elevation
+  const[c0,c1,c2]=skyColors(alt);
+  G('skyA').setAttribute('stop-color',c0);
+  G('skyB').setAttribute('stop-color',c1);
+  G('skyC').setAttribute('stop-color',c2);
+
+  // Stars fade in as the sky darkens
+  if(!starsBuilt){
+    G('sky-stars').innerHTML=Array.from({length:34},()=>{
+      const x=6+Math.random()*308,y=8+Math.random()*94,r=(.5+Math.random()*1.1).toFixed(2);
+      return `<circle class="twk" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="#fff" style="animation-delay:${(Math.random()*3).toFixed(2)}s"/>`;
+    }).join('');
+    starsBuilt=true;
+  }
+  G('sky-stars').style.opacity=alt>0?0:Math.min(1,Math.max(0,(-alt-2)/10));
+  starNight=Math.min(1,Math.max(0,(-alt-1)/8));
+
+  // Background sky body: whichever of sun/moon is actually above the horizon
+  const mn=moonPos(now,loc.lat,loc.lon),mph=getMoonPhase();
+  // Sun while it's up. Otherwise the moon — always shown at night so the sky is
+  // never empty, dimmed a little when it has actually set. Its phase and its
+  // east/west placement stay true; the Sun Path card reports the real altitude.
+  skyBody=alt>-0.8
+    ?{type:'sun',fx:azFrac(sp.az,loc.lat),fy:alt,op:Math.min(1,(alt+0.8)/4)}
+    :{type:'moon',fx:azFrac(mn.az,loc.lat),fy:Math.max(mn.alt,0),
+      op:mn.alt>-0.8?1:.7,illum:mph.illum,waxing:mph.days<14.77};
+  fxStart();
+
+  if(!sunrise||!sunset){
+    const polar=loc.lat>0?(sp.dec>0?'Midnight sun':'Polar night'):(sp.dec<0?'Midnight sun':'Polar night');
+    G('sr-time').textContent='—';G('ss-time').textContent='—';
+    G('day-len').textContent=polar;
+    G('sun-el').textContent=`Sun ${alt>=0?'':'−'}${Math.abs(alt).toFixed(1)}° ${alt>=0?'above':'below'} horizon`;
+    G('sun-body').setAttribute('opacity',alt>=0?'1':'0');
+    G('moon-body').setAttribute('opacity',alt>=0?'0':'1');
+    return;
+  }
+
+  const toMin=s=>{const[h,m]=s.split('T')[1].split(':').map(Number);return h*60+m};
+  const srMin=toMin(sunrise),ssMin=toMin(sunset);
   const dayLen=ssMin-srMin;
-  document.getElementById('day-len').textContent=`${Math.floor(dayLen/60)}h ${dayLen%60}m daylight`;
+  G('sr-time').textContent=fmtIsoTime(sunrise);
+  G('ss-time').textContent=fmtIsoTime(sunset);
+  G('day-len').textContent=`${Math.floor(dayLen/60)}h ${dayLen%60}m daylight`;
 
-  // Current time in location tz
-  const nowStr=new Date().toLocaleTimeString('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false});
-  const[ch,cm]=nowStr.replace('24:','0:').split(':').map(Number);
-  const nowMin=ch*60+cm;
-  const progress=Math.max(0,Math.min(1,(nowMin-srMin)/dayLen));
+  const nowStr=now.toLocaleTimeString('en-GB',{timeZone:loc.timezone,hour:'2-digit',minute:'2-digit',hour12:false});
+  const[ch,cm]=nowStr.split(':').map(Number);
+  const nowMin=(ch%24)*60+cm;
+  const isDay=nowMin>=srMin&&nowMin<=ssMin;
 
-  // Position sun on arc (cx=150, cy=112, r=120)
-  const α=Math.PI*(1-progress);
-  const sx=150+120*Math.cos(α);
-  const sy=112-120*Math.sin(α);
-  document.getElementById('sun-dot').setAttribute('cx',sx);
-  document.getElementById('sun-dot').setAttribute('cy',sy);
-  document.getElementById('sun-glow').setAttribute('cx',sx);
-  document.getElementById('sun-glow').setAttribute('cy',sy);
+  const place=(g,prog)=>{
+    const a=Math.PI*(1-Math.max(0,Math.min(1,prog)));
+    g.setAttribute('transform',`translate(${(cx+rx*Math.cos(a)).toFixed(1)},${(cy-ry*Math.sin(a)).toFixed(1)})`);
+  };
 
-  // Progress arc stroke-dasharray (arc length = π*120 ≈ 377)
-  const arcLen=Math.PI*120;
-  const prog=progress*arcLen;
-  document.getElementById('arc-prog').setAttribute('stroke-dasharray',`${prog} ${arcLen}`);
-
-  // Hide sun if night
-  const isVisible=nowMin>=srMin&&nowMin<=ssMin;
-  document.getElementById('sun-dot').style.opacity=isVisible?'1':'0';
-  document.getElementById('sun-glow').style.opacity=isVisible?'.25':'0';
+  const arcLen=G('arc-bg').getTotalLength();
+  if(isDay){
+    const prog=(nowMin-srMin)/dayLen;
+    place(G('sun-body'),prog);
+    G('sun-body').setAttribute('opacity','1');
+    G('moon-body').setAttribute('opacity','0');
+    G('arc-prog').setAttribute('stroke-dasharray',`${(prog*arcLen).toFixed(1)} ${arcLen.toFixed(1)}`);
+    const mins=ssMin-nowMin;
+    G('sun-el').textContent=`☀️ ${alt.toFixed(1)}° above horizon · ${degToCompass(sp.az)} · sets in ${Math.floor(mins/60)}h ${mins%60}m`;
+  }else{
+    const nsMin=nextRise?toMin(nextRise):srMin;
+    const past=nowMin>ssMin;
+    const total=(1440-ssMin)+(past?nsMin:srMin);
+    const elapsed=past?nowMin-ssMin:(1440-ssMin)+nowMin;
+    place(G('moon-body'),elapsed/total);
+    G('moon-body').setAttribute('opacity','1');
+    G('sun-body').setAttribute('opacity','0');
+    G('arc-prog').setAttribute('stroke-dasharray',`0 ${arcLen.toFixed(1)}`);
+    const mp=getMoonPhase();
+    G('moon-shade').setAttribute('opacity',(1-mp.illum/100).toFixed(2));
+    G('moon-shade').setAttribute('cx',(mp.days<14.77?5:-5).toString());
+    const left=total-elapsed;
+    G('sun-el').textContent=`🌙 ${Math.abs(alt).toFixed(1)}° below horizon · sunrise in ${Math.floor(left/60)}h ${left%60}m`;
+  }
 }
 
 function renderForecast(d,isM,tU,pUnit){
@@ -618,6 +1732,24 @@ function renderForecast(d,isM,tU,pUnit){
 function show(id){const el=document.getElementById(id);if(el)el.style.display=id==='wx'?'flex':'block';}
 function hide(id){const el=document.getElementById(id);if(el)el.style.display='none'}
 function showErr(msg){document.getElementById('err').textContent=msg;show('err');hide('wx');show('empty');hide('ld')}
+
+// Tapping the logo or wordmark returns to the start screen
+function goHome(){
+  hide('wx');hide('err');hide('ld');
+  show('empty');
+  siEl.value='';lastCity='';currentLoc=null;
+  hideSugg();
+  expandSearch();                       // the bar is always open on the start screen
+  renderSaved();renderRecents();
+  scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────
+// Runs last so every const/let above is initialised before anything uses it.
+setUnit(unit,false);
+document.getElementById('si').focus();
+renderSaved();
+renderRecents();
 </script>
 </body>
 </html>

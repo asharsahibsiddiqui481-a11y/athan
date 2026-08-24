@@ -66,12 +66,6 @@ def index():
     return send_from_directory('public', 'index.html')
 
 
-@app.route('/weather.html')
-@app.route('/weather')
-def weather():
-    return send_from_directory('public', 'weather.html')
-
-
 @app.route('/athan.html')
 @app.route('/athan')
 def athan():
@@ -355,7 +349,7 @@ def tts():
     try:
         body     = request.get_json()
         text     = (body.get('text') or '').strip()[:2500]
-        voice_id = body.get('voice_id') or '21m00Tcm4TlvDq8ikWAM'
+        voice_id = body.get('voice_id') or 'EXAVITQu4vr4xnSDxMaL'
         if not text:
             return jsonify({'error': 'Missing text'}), 400
 

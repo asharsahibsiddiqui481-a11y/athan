@@ -141,13 +141,16 @@
     /* ── Settings panel ───────────────────────────────────────── */
     #settings-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
       z-index: 149; opacity: 0; pointer-events: none; transition: opacity 0.25s;
     }
     #settings-backdrop.visible { opacity: 1; pointer-events: all; }
 
     #settings-panel {
       position: fixed; top: 0; right: 0; bottom: 0; width: 320px;
-      background: var(--surface); border-left: 1px solid var(--border);
+      background: rgba(9, 13, 20, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-left: 1px solid rgba(var(--accent-rgb), 0.25);
+      box-shadow: -30px 0 60px rgba(0,0,0,0.4), -6px 0 24px rgba(var(--accent-rgb),0.06);
       z-index: 150; transform: translateX(100%); transition: transform 0.28s cubic-bezier(.4,0,.2,1);
       display: flex; flex-direction: column; overflow-y: auto;
     }
@@ -156,22 +159,37 @@
     #settings-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
     .settings-header {
+      position: relative;
       display: flex; align-items: center; justify-content: space-between;
       padding: 20px 20px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-    .settings-header h2 { font-size: 16px; font-weight: 700; }
+    .settings-header::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+      background: linear-gradient(90deg, rgba(var(--accent-rgb),0.7), rgba(25,240,120,0.5), transparent);
+      opacity: 0.7;
+    }
+    .settings-header h2 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    }
     .settings-close {
-      width: 28px; height: 28px; border-radius: 8px; border: none;
-      background: var(--surface2); color: var(--text-muted); cursor: pointer;
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03); color: var(--text-muted); cursor: pointer;
       font-size: 14px; display: flex; align-items: center; justify-content: center;
       transition: all 0.15s; font-family: inherit;
     }
-    .settings-close:hover { color: var(--text); }
+    .settings-close:hover { color: var(--text); border-color: rgba(var(--accent-rgb),0.5); box-shadow: 0 0 10px rgba(var(--accent-rgb),0.2); }
 
     .settings-section { padding: 20px; border-bottom: 1px solid var(--border); }
     .settings-section-title {
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 7px;
+      font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;
+    }
+    .settings-section-title::before {
+      content: ''; width: 6px; height: 6px; border-radius: 2px;
+      background: var(--accent); box-shadow: 0 0 6px rgba(var(--accent-rgb),0.7); flex-shrink: 0;
     }
 
     .settings-row {
@@ -187,9 +205,12 @@
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-track {
       position: absolute; inset: 0; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 99px; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+      border-radius: 99px; cursor: pointer; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .toggle input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+    .toggle input:checked + .toggle-track {
+      background: var(--accent); border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb),0.5);
+    }
     .toggle-track::after {
       content: ''; position: absolute; top: 2px; left: 2px;
       width: 16px; height: 16px; background: white; border-radius: 50%;
@@ -198,26 +219,36 @@
     .toggle input:checked + .toggle-track::after { transform: translateX(18px); }
 
     .settings-select {
-      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
       border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px;
       font-family: inherit; outline: none; cursor: pointer; margin-top: 8px;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .settings-select:focus { border-color: var(--accent); }
-    .settings-select option { background: var(--surface2); }
+    .settings-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12); }
+    .settings-select option { background: #0b1018; }
 
     .settings-range { width: 100%; accent-color: var(--accent); margin-top: 8px; cursor: pointer; }
 
     .settings-preview-btn {
-      margin-top: 10px; width: 100%; padding: 8px; background: var(--surface2);
+      margin-top: 10px; width: 100%; padding: 8px; background: rgba(255,255,255,0.03);
       border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted);
       font-size: 13px; font-family: inherit; cursor: pointer; transition: all 0.15s;
     }
-    .settings-preview-btn:hover { color: var(--text); border-color: var(--accent); }
+    .settings-preview-btn:hover { color: var(--text); border-color: var(--accent); box-shadow: 0 0 12px rgba(var(--accent-rgb),0.2); }
 
     .integration-status {
-      font-size: 11.5px; color: var(--text-muted); margin-top: 4px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 11px; color: var(--text-muted); margin-top: 4px;
+    }
+    .integration-status::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0;
     }
     .integration-status.active { color: var(--green); }
+    .integration-status.active::before {
+      background: var(--green); box-shadow: 0 0 6px var(--green);
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
 
     /* ── Header ───────────────────────────────────────────────── */
     header {
@@ -267,22 +298,28 @@
     .header-right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 
     .header-btn {
-      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-muted);
       font-size: 12px; padding: 4px 10px; border-radius: 99px; cursor: pointer;
       transition: all 0.15s; font-family: inherit; white-space: nowrap;
     }
-    .header-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .header-btn:hover {
+      color: var(--text); border-color: rgba(var(--accent-rgb),0.5);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb),0.2);
+    }
     .header-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(var(--accent-rgb),0.1); }
 
     .icon-header-btn {
       width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
-      background: none; color: var(--text-muted); cursor: pointer; display: flex;
+      background: rgba(255,255,255,0.03); color: var(--text-muted); cursor: pointer; display: flex;
       align-items: center; justify-content: center; transition: all 0.15s;
     }
-    .icon-header-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .icon-header-btn:hover {
+      color: var(--text); border-color: rgba(var(--accent-rgb),0.5);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb),0.2); transform: translateY(-1px);
+    }
 
     #user-pill {
-      display: flex; align-items: center; gap: 6px; background: var(--surface2);
+      display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03);
       border: 1px solid var(--border); border-radius: 99px; padding: 2px 10px 2px 4px;
       font-size: 12px; color: var(--text-muted);
     }
@@ -290,6 +327,7 @@
       width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
       color: white; font-size: 10px; font-weight: 700; display: flex;
       align-items: center; justify-content: center; text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(var(--accent-rgb),0.5);
     }
 
     /* ── Chat ─────────────────────────────────────────────────── */

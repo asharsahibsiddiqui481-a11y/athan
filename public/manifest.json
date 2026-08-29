@@ -4,8 +4,8 @@
   "description": "Your personal AI assistant powered by ROBOTI",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d0d",
-  "theme_color": "#7c3aed",
+  "background_color": "#030508",
+  "theme_color": "#2f8cff",
   "orientation": "portrait-primary",
   "icons": [
     {

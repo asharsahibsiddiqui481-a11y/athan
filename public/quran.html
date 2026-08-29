@@ -68,6 +68,15 @@ select option{color:#111}
 .dua-en{font-size:13px;opacity:.8}
 .dua-ref{font-size:11px;opacity:.45;margin-top:6px}
 .hint{font-size:12px;opacity:.55;margin-top:10px}
+.card-divider{display:flex;align-items:center;gap:12px;margin:22px 0 16px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.45}
+.card-divider::before,.card-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.15)}
+.pass-box{display:none;margin-top:14px;padding:14px;border-radius:var(--rs);border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
+.pass-box.pass{border-color:rgba(127,224,160,.5);background:rgba(127,224,160,.10)}
+.pass-box.fail{border-color:rgba(255,122,122,.45);background:rgba(255,122,122,.08)}
+.pass-msg{font-size:14px;font-weight:600;margin-bottom:12px;line-height:1.5}
+.pass-actions{display:flex;gap:8px;flex-wrap:wrap}
+#next-ayah-btn{background:var(--acc);color:#1a1300}
+#next-ayah-btn:disabled{background:rgba(255,255,255,.12);color:rgba(255,255,255,.4);cursor:not-allowed}
 .utog{display:flex;background:rgba(255,255,255,.12);border-radius:99px;padding:3px;margin-bottom:16px;width:fit-content}
 .utog button{background:none;border:none;color:#fff;padding:7px 16px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;opacity:.55;transition:all .2s}
 .utog button.on{background:rgba(255,255,255,.25);opacity:1}
@@ -115,17 +124,17 @@ select option{color:#111}
   </div>
 
   <div class="card">
-    <div class="ct">📜 Mushaf Page</div>
+    <div class="ct">📖 Read &amp; Recite</div>
+
     <div class="page-nav">
       <button class="tbtn" onclick="changePage(-1)">◀ Prev</button>
       <div class="page-info" id="page-info">—</div>
       <button class="tbtn" onclick="changePage(1)">Next ▶</button>
     </div>
     <div class="mushaf-page" id="mushaf-page">Loading…</div>
-  </div>
 
-  <div class="card">
-    <div class="ct">🎙 Recite &amp; Check</div>
+    <div class="card-divider"><span>Now reciting</span></div>
+
     <div class="picker-row">
       <select id="sel-surah" onchange="onSurahChange()"><option>Loading surahs…</option></select>
       <select id="sel-ayah" onchange="loadAyah()"></select>
@@ -142,7 +151,14 @@ select option{color:#111}
     </div>
     <div class="diff-box" id="diff-box"></div>
     <div class="acc-line" id="acc-line"></div>
-    <div class="hint">Uses your browser's built-in speech recognition to catch skipped, extra, or wrong words — it checks word accuracy, not tajweed/pronunciation. Works best in Chrome or Edge.</div>
+    <div class="pass-box" id="pass-box">
+      <div class="pass-msg" id="pass-msg"></div>
+      <div class="pass-actions">
+        <button class="tbtn" id="retry-btn" onclick="retryAyah()">↻ Try Again</button>
+        <button class="tbtn" id="next-ayah-btn" onclick="goToNextAyah()">Next Ayah ▶</button>
+      </div>
+    </div>
+    <div class="hint">Score 75% or higher to unlock the next ayah. Uses your browser's built-in speech recognition to catch skipped, extra, or wrong words — it checks word accuracy, not tajweed/pronunciation. Works best in Chrome or Edge.</div>
   </div>
 
   <div class="card">
@@ -591,6 +607,8 @@ function resetRecitationUI(){
   document.getElementById('diff-box').innerHTML='';
   document.getElementById('acc-line').style.display='none';
   document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
+  const pb=document.getElementById('pass-box');
+  pb.style.display='none';pb.className='pass-box';
 }
 function toggleRecite(){
   if(!currentAyahText){showErr('Load an ayah first.');return}
@@ -642,6 +660,38 @@ function finishSession(){
   accLine.textContent=`Accuracy: ${acc}% — ${ops.filter(o=>o.type==='miss').length} missed, ${ops.filter(o=>o.type==='extra').length} extra`;
   accLine.style.display='block';
   logAyahSession(currentSurah,currentAyahNum,acc);
+  showPassResult(acc);
+}
+
+// ── Pass gate: 75% or higher unlocks the next ayah ───────────────────
+const PASS_THRESHOLD=75;
+function showPassResult(acc){
+  const passed=acc>=PASS_THRESHOLD;
+  const box=document.getElementById('pass-box');
+  box.className=`pass-box ${passed?'pass':'fail'}`;
+  box.style.display='block';
+  document.getElementById('pass-msg').textContent=passed
+    ? `✅ Passed with ${acc}% — well done! You can move on to the next ayah.`
+    : `Keep going — you scored ${acc}%. You need ${PASS_THRESHOLD}% to unlock the next ayah. Tap “Listen” to hear it, then try again.`;
+  const nextBtn=document.getElementById('next-ayah-btn');
+  nextBtn.disabled=!passed;
+  nextBtn.title=passed?'':`Score ${PASS_THRESHOLD}% or higher to continue`;
+}
+function retryAyah(){
+  resetRecitationUI();
+  document.getElementById('rec-status').textContent='Tap the mic and recite the ayah again';
+}
+async function goToNextAyah(){
+  const surah=surahList.find(s=>s.number===currentSurah);
+  if(!surah)return;
+  if(currentAyahNum<surah.numberOfAyahs){
+    await jumpToAyah(currentSurah,currentAyahNum+1);
+  }else if(currentSurah<114){
+    await jumpToAyah(currentSurah+1,1);
+  }else{
+    // End of the Quran — wrap back to the very beginning.
+    await jumpToAyah(1,1);
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────

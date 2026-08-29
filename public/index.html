@@ -38,7 +38,13 @@
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(90deg, rgba(var(--accent-rgb), 0.08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(#030508 0%, #07101a 45%, #05070b 100%);
+      background-size: 72px 72px, 72px 72px, auto;
+      background-attachment: fixed;
       color: var(--text);
       height: 100dvh;
       display: flex;
@@ -50,7 +56,7 @@
     #auth-overlay {
       position: fixed;
       inset: 0;
-      background: var(--bg);
+      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -617,6 +623,10 @@
       <div class="user-avatar" id="user-avatar"></div>
       <span id="username-label"></span>
     </div>
+    <a class="header-btn" href="https://www.robotiusa.com/" target="_blank" rel="noopener" title="Visit Roboti Corp" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+      Roboti Corp
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+    </a>
     <button class="icon-header-btn" onclick="openSettings()" title="Settings">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>

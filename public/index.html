@@ -300,7 +300,7 @@
       flex: 1; display: flex; flex-direction: column; align-items: center;
       justify-content: center; gap: 12px; color: var(--text-muted); text-align: center;
     }
-    .empty-state .icon { font-size: 44px; }
+    .empty-state .icon { width: 44px; height: 44px; margin: 0 auto; }
     .empty-state h2 { font-size: 19px; font-weight: 600; color: var(--text); }
     .empty-state p { font-size: 13.5px; max-width: 280px; }
     .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 6px; }
@@ -652,7 +652,13 @@
 
 <div id="chat">
   <div class="empty-state" id="empty-state">
-    <div class="icon">✦</div>
+    <div class="icon">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <path fill="#f4f8ff" d="M94 35.2 54 56.8v15.3l-12 6.3v43.2l12 6.3v15.3l40 21.6v-36l-23-12.6v-9l23-5.4v-3.6L71 93V83.8l23-12.6Z"></path>
+        <path fill="#f4f8ff" d="m106 35.2 40 21.6v15.3l12 6.3v43.2l-12 6.3v15.3l-40 21.6v-36l23-12.6v-9l-23-5.4v-3.6l23-5.4v-9l-23-12.6Z"></path>
+        <circle cx="100" cy="100" r="8" fill="#19f078"></circle>
+      </svg>
+    </div>
     <h2 id="welcome-msg">How can I help you?</h2>
     <p>Ask anything — or tap 🎤 for a voice conversation.</p>
     <div class="suggestions">
@@ -1277,7 +1283,11 @@ function appendMessage(role, text = '') {
   msg.className = `message ${role}`;
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
-  avatar.textContent = role === 'user' ? (currentUser ? currentUser[0].toUpperCase() : 'U') : '✦';
+  if (role === 'user') {
+    avatar.textContent = currentUser ? currentUser[0].toUpperCase() : 'U';
+  } else {
+    avatar.innerHTML = '<svg viewBox="0 0 200 200" aria-hidden="true" style="width:60%;height:60%"><path fill="#030508" d="M94 35.2 54 56.8v15.3l-12 6.3v43.2l12 6.3v15.3l40 21.6v-36l-23-12.6v-9l23-5.4v-3.6L71 93V83.8l23-12.6Z"></path><path fill="#030508" d="m106 35.2 40 21.6v15.3l12 6.3v43.2l-12 6.3v15.3l-40 21.6v-36l23-12.6v-9l-23-5.4v-3.6l23-5.4v-9l-23-12.6Z"></path></svg>';
+  }
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
   bubble.textContent = text;

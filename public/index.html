@@ -787,7 +787,16 @@ function enableCompass(){
   }else start();
 }
 
-// ── Manual direction (for devices with no compass, e.g. laptops) ──────
+// Compass controls are phone-only — laptops have no magnetometer, so on a
+// desktop the card just shows the bearing from North with no extra buttons.
+const HAS_COMPASS_UI=!!(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches&&(navigator.maxTouchPoints||0)>0);
+if(!HAS_COMPASS_UI){
+  const btns=document.querySelector('.qibla-btns');if(btns)btns.style.display='none';
+  const box=document.getElementById('manual-box');if(box)box.style.display='none';
+  const hint=document.getElementById('q-dir');if(hint)hint.textContent='Direction from North.';
+}
+
+// ── Manual direction (phone fallback if the compass can't start) ──────
 const COMPASS_PTS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
 function pointName(deg){return COMPASS_PTS[Math.round(deg/22.5)%16]}
 

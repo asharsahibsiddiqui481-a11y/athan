@@ -1,0 +1,24 @@
+{
+  "name": "Athan Clock",
+  "short_name": "Athan",
+  "description": "Prayer times, Qibla direction, and Quran recitation practice",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#03040a",
+  "theme_color": "#e8b94d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

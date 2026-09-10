@@ -73,6 +73,12 @@ body.p-isha{background:linear-gradient(180deg,#020208,#0a0a1c,#131328)}
 .qibla-info .qv{font-size:24px;font-weight:700}
 .qibla-info .ql{font-size:12px;opacity:.55;margin-top:2px}
 .qibla-info .qd{font-size:13px;opacity:.6;margin-top:8px}
+.qibla-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#manual-box{display:none;margin-top:12px}
+.sun-hint{font-size:12px;opacity:.75;line-height:1.5;margin-bottom:10px;padding:8px 10px;border-radius:10px;background:rgba(232,185,77,.10);border:1px solid rgba(232,185,77,.25)}
+.manual-lbl{font-size:12px;opacity:.65;display:block;margin-bottom:6px}
+.manual-lbl b{color:var(--acc);font-size:13px}
+#manual-range{width:100%;accent-color:var(--acc)}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .set-row:last-child{border-bottom:none;padding-bottom:0}
 .set-label{font-size:14px;font-weight:600}
@@ -195,7 +201,15 @@ select option{color:#111}
           <div class="qv" id="q-deg">—</div>
           <div class="ql" id="q-dir">Direction from North. Tap below to use your phone's compass.</div>
           <div class="qd" id="q-dist">—</div>
-          <button class="tbtn" id="compass-btn" style="margin-top:10px" onclick="enableCompass()">🧭 Use live compass</button>
+          <div class="qibla-btns">
+            <button class="tbtn" id="compass-btn" onclick="enableCompass()">🧭 Use live compass</button>
+            <button class="tbtn" id="manual-btn" onclick="toggleManual()">✋ Set direction</button>
+          </div>
+          <div id="manual-box">
+            <div class="sun-hint" id="sun-hint">—</div>
+            <label class="manual-lbl">I'm facing <b id="manual-val">0° N</b></label>
+            <input type="range" id="manual-range" min="0" max="359" value="0" oninput="onManualHeading(this.value)"/>
+          </div>
         </div>
       </div>
     </div>
@@ -750,7 +764,7 @@ function enableCompass(){
   const msg=document.getElementById('q-dir');
   const DOE=window.DeviceOrientationEvent;
   if(!DOE){
-    msg.textContent='This device has no compass. The dial shows the direction from North.';
+    msg.textContent='This device has no compass — use “Set direction” instead.';
     btn.style.display='none';return;
   }
   const start=()=>{
@@ -760,7 +774,7 @@ function enableCompass(){
     msg.textContent='Hold your phone flat and turn slowly…';
     setTimeout(()=>{
       if(!gotReading){
-        msg.textContent='No compass reading — most laptops have no compass. Try it on your phone.';
+        msg.textContent='No compass reading — laptops have no compass chip. Use “Set direction” below instead.';
         btn.textContent='🧭 Use live compass';btn.classList.remove('on');
       }
     },4000);
@@ -771,6 +785,69 @@ function enableCompass(){
       else msg.textContent='Compass permission denied — allow Motion & Orientation access, then tap again.';
     }).catch(()=>{msg.textContent='Could not start the compass on this device.'});
   }else start();
+}
+
+// ── Manual direction (for devices with no compass, e.g. laptops) ──────
+const COMPASS_PTS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function pointName(deg){return COMPASS_PTS[Math.round(deg/22.5)%16]}
+
+function toggleManual(){
+  const box=document.getElementById('manual-box');
+  const btn=document.getElementById('manual-btn');
+  const opening=box.style.display!=='block';
+  box.style.display=opening?'block':'none';
+  btn.classList.toggle('on',opening);
+  if(opening){
+    updateSunHint();
+    onManualHeading(document.getElementById('manual-range').value);
+  }else{
+    compassHeading=null;drawQibla(null);
+    document.getElementById('q-dir').textContent='Direction from North.';
+  }
+}
+
+function onManualHeading(v){
+  const h=Number(v);
+  document.getElementById('manual-val').textContent=`${h}° ${pointName(h)}`;
+  compassHeading=h;
+  drawQibla(h);
+}
+
+// Where the sun is right now — a compass you can actually see.
+function sunPosition(lat,lon,when){
+  const rad=Math.PI/180,deg=180/Math.PI;
+  const d=when.getTime()/86400000-10957.5;          // days since J2000.0
+  const g=(357.529+0.98560028*d)*rad;               // mean anomaly
+  const q=280.459+0.98564736*d;                     // mean longitude
+  const L=(q+1.915*Math.sin(g)+0.020*Math.sin(2*g))*rad;
+  const e=(23.439-0.00000036*d)*rad;                // obliquity
+  const dec=Math.asin(Math.sin(e)*Math.sin(L));
+  const ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L))*deg;
+  let gmst=(18.697374558+24.06570982441908*d)%24; if(gmst<0)gmst+=24;
+  let ha=((gmst*15+lon)-ra)%360;
+  if(ha<-180)ha+=360; if(ha>180)ha-=360;
+  const har=ha*rad,latr=lat*rad;
+  const alt=Math.asin(Math.sin(latr)*Math.sin(dec)+Math.cos(latr)*Math.cos(dec)*Math.cos(har));
+  let cosAz=(Math.sin(dec)-Math.sin(alt)*Math.sin(latr))/(Math.cos(alt)*Math.cos(latr));
+  cosAz=Math.max(-1,Math.min(1,cosAz));
+  let az=Math.acos(cosAz)*deg;
+  if(Math.sin(har)>0)az=360-az;
+  return{azimuth:(az+360)%360,altitude:alt*deg};
+}
+
+function updateSunHint(){
+  const el=document.getElementById('sun-hint');
+  if(!curLoc){el.textContent='Search a city first.';return}
+  const s=sunPosition(curLoc.lat,curLoc.lon,new Date());
+  if(s.altitude<=0){
+    el.textContent='🌙 The sun is below the horizon right now, so it can’t help you find north. If you already know which way you’re facing, drag the slider.';
+    return;
+  }
+  const rel=(qiblaBearing-s.azimuth+360)%360;
+  const right=rel<=180,off=right?rel:360-rel;
+  el.innerHTML=`☀️ The sun is ${pointName(s.azimuth)} (${Math.round(s.azimuth)}°) right now. `+
+    (off<=7?'<b>Face the sun — that’s the Qibla.</b>'
+           :`<b>Face the sun, then turn ${right?'right':'left'} ${Math.round(off)}°.</b>`);
 }
 
 // ── Settings handlers ─────────────────────────────────────────────────

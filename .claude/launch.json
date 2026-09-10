@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "athan",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["server.py"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

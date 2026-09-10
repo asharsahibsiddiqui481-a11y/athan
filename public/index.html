@@ -177,20 +177,25 @@ select option{color:#111}
       <div class="ct">🧭 Qibla Direction</div>
       <div class="qibla-inner">
         <svg class="qibla-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="60" cy="60" r="54" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
-          <text x="60" y="16" text-anchor="middle" fill="#fff" font-size="12" font-weight="700" font-family="system-ui">N</text>
-          <text x="108" y="64" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui">E</text>
-          <text x="60" y="112" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui">S</text>
-          <text x="12" y="64" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui">W</text>
+          <!-- fixed marker: the way you are currently facing -->
+          <polygon points="60,1 56,9 64,9" fill="rgba(255,255,255,.6)"/>
+          <g id="q-rose" transform="rotate(0,60,60)">
+            <circle cx="60" cy="60" r="54" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
+            <text x="60" y="16" text-anchor="middle" fill="#fff" font-size="12" font-weight="700" font-family="system-ui">N</text>
+            <text x="108" y="64" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui">E</text>
+            <text x="60" y="112" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui">S</text>
+            <text x="12" y="64" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="11" font-family="system-ui">W</text>
+          </g>
           <g id="q-arrow" transform="rotate(0,60,60)">
             <polygon points="60,18 54,64 60,54 66,64" fill="var(--acc)"/>
-            <circle cx="60" cy="60" r="4" fill="#fff"/>
           </g>
+          <circle cx="60" cy="60" r="4" fill="#fff"/>
         </svg>
         <div class="qibla-info">
           <div class="qv" id="q-deg">—</div>
-          <div class="ql" id="q-dir">Rotate device to align with compass</div>
+          <div class="ql" id="q-dir">Direction from North. Tap below to use your phone's compass.</div>
           <div class="qd" id="q-dist">—</div>
+          <button class="tbtn" id="compass-btn" style="margin-top:10px" onclick="enableCompass()">🧭 Use live compass</button>
         </div>
       </div>
     </div>
@@ -703,7 +708,69 @@ function renderQibla(lat,lon){
   const dist=Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
   document.getElementById('q-deg').textContent=`${Math.round(brng)}° ${dir}`;
   document.getElementById('q-dist').textContent=`${dist.toLocaleString()} km to Mecca`;
-  document.getElementById('q-arrow').setAttribute('transform',`rotate(${brng.toFixed(1)},60,60)`);
+  qiblaBearing=brng;
+  drawQibla(compassHeading);
+}
+
+// ── Live compass ──────────────────────────────────────────────────────
+// Without a heading the dial just shows the bearing from North. With one,
+// the rose counter-rotates so it stays pinned to real north, and the arrow
+// points at the Kaaba as you physically turn.
+let qiblaBearing=0,compassHeading=null,gotReading=false;
+
+function drawQibla(heading){
+  const rose=document.getElementById('q-rose');
+  const arrow=document.getElementById('q-arrow');
+  if(heading===null||heading===undefined){
+    rose.setAttribute('transform','rotate(0,60,60)');
+    arrow.setAttribute('transform',`rotate(${qiblaBearing.toFixed(1)},60,60)`);
+    return;
+  }
+  rose.setAttribute('transform',`rotate(${(-heading).toFixed(1)},60,60)`);
+  const rel=(qiblaBearing-heading+360)%360;
+  arrow.setAttribute('transform',`rotate(${rel.toFixed(1)},60,60)`);
+  const right=rel<=180;
+  const off=right?rel:360-rel;
+  document.getElementById('q-dir').textContent=off<=7
+    ? '✅ You are facing the Qibla'
+    : `Turn ${right?'right':'left'} ${Math.round(off)}°`;
+}
+
+function onOrient(e){
+  let h=null;
+  if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;
+  else if(e.absolute===true&&typeof e.alpha==='number')h=(360-e.alpha)%360;
+  if(h===null)return;
+  gotReading=true;compassHeading=h;
+  drawQibla(h);
+}
+
+function enableCompass(){
+  const btn=document.getElementById('compass-btn');
+  const msg=document.getElementById('q-dir');
+  const DOE=window.DeviceOrientationEvent;
+  if(!DOE){
+    msg.textContent='This device has no compass. The dial shows the direction from North.';
+    btn.style.display='none';return;
+  }
+  const start=()=>{
+    window.addEventListener('deviceorientationabsolute',onOrient,true);
+    window.addEventListener('deviceorientation',onOrient,true);
+    btn.textContent='🧭 Compass on';btn.classList.add('on');
+    msg.textContent='Hold your phone flat and turn slowly…';
+    setTimeout(()=>{
+      if(!gotReading){
+        msg.textContent='No compass reading — most laptops have no compass. Try it on your phone.';
+        btn.textContent='🧭 Use live compass';btn.classList.remove('on');
+      }
+    },4000);
+  };
+  if(typeof DOE.requestPermission==='function'){
+    DOE.requestPermission().then(p=>{
+      if(p==='granted')start();
+      else msg.textContent='Compass permission denied — allow Motion & Orientation access, then tap again.';
+    }).catch(()=>{msg.textContent='Could not start the compass on this device.'});
+  }else start();
 }
 
 // ── Settings handlers ─────────────────────────────────────────────────

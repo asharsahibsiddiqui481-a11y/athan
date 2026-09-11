@@ -25,6 +25,15 @@ select option{color:#111}
 .picker-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .ayah-box{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:18px}
 .ayah-ar{font-size:28px;line-height:2.1;direction:rtl;text-align:right;font-family:'Traditional Arabic','Scheherazade New',serif}
+.ayah-ar .w{padding:0 3px;border-radius:5px;transition:color .15s,background .15s}
+.ayah-ar .w-done{color:var(--acc)}
+.ayah-ar .w-now{background:rgba(232,185,77,.22);box-shadow:0 0 0 1.5px rgba(232,185,77,.6)}
+.ayah-ar .w-bad{background:rgba(255,122,122,.25);color:#ff9b9b;box-shadow:0 0 0 1.5px rgba(255,122,122,.7)}
+.coach{display:none;margin-top:14px;padding:14px;border-radius:var(--rs);font-size:14px;line-height:1.6}
+.coach.bad{display:block;background:rgba(255,122,122,.10);border:1px solid rgba(255,122,122,.45)}
+.coach.good{display:block;background:rgba(127,224,160,.10);border:1px solid rgba(127,224,160,.5)}
+.coach .c-said{font-family:'Traditional Arabic','Scheherazade New',serif;font-size:20px;direction:rtl}
+.coach .c-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .ayah-en{font-size:14px;opacity:.75;margin-top:12px;line-height:1.6}
 .ayah-ref{font-size:12px;opacity:.5;margin-top:10px}
 .page-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
@@ -149,6 +158,7 @@ select option{color:#111}
       <button class="tbtn" onclick="playAyahAudio()">▶ Listen (reciter)</button>
       <span class="rec-status" id="rec-status">Tap the mic and recite the ayah above</span>
     </div>
+    <div class="coach" id="coach"></div>
     <div class="diff-box" id="diff-box"></div>
     <div class="acc-line" id="acc-line"></div>
     <div class="pass-box" id="pass-box">
@@ -158,7 +168,7 @@ select option{color:#111}
         <button class="tbtn" id="next-ayah-btn" onclick="goToNextAyah()">Next Ayah ▶</button>
       </div>
     </div>
-    <div class="hint">Score 75% or higher to unlock the next ayah. Uses your browser's built-in speech recognition to catch skipped, extra, or wrong words — it checks word accuracy, not tajweed/pronunciation. Works best in Chrome or Edge.</div>
+    <div class="hint">Qari Sahib follows along as you recite — words turn gold behind you, and he stops you the moment a word is wrong or skipped. Finish the ayah to unlock the next one. He listens for the right <i>words</i>, not tajweed or pronunciation. Works best in Chrome or Edge.</div>
   </div>
 
   <div class="card">
@@ -507,7 +517,7 @@ async function loadAyah(){
     currentAyahText=arObj.text;
     currentAyahAudioUrl=audioObj.audio;
     currentSurah=surahN;currentAyahNum=ayahN;
-    document.getElementById('ayah-ar').textContent=currentAyahText;
+    renderAyahWords(currentAyahText);
     document.getElementById('ayah-en').textContent=enObj.text;
     document.getElementById('ayah-ref').textContent=`${surah?surah.englishName:''} — ${surahN}:${ayahN}`;
     if(arObj.page&&arObj.page!==currentPage)await loadMushafPage(arObj.page);
@@ -601,23 +611,72 @@ function diffWords(ref,hyp){
 
 // ── Recitation via Web Speech API ────────────────────────────────────
 let recognition=null,recognizing=false,finalTranscript='';
+// ── Reading along, word by word ───────────────────────────────────────
+// The ayah is split into words up front. As you recite, a cursor walks
+// along them: words behind it turn gold, the one you're on is boxed. If a
+// word you actually finished saying doesn't match, we stop you right there
+// rather than waiting until the end.
+let ayahWords=[],cursor=0,stopped=false;
+
+function renderAyahWords(text){
+  ayahWords=text.trim().split(/\s+/)
+    .map(w=>({raw:w,norm:normalizeAr(w)}))
+    .filter(p=>p.norm.length>0);
+  document.getElementById('ayah-ar').innerHTML=
+    ayahWords.map((p,i)=>`<span class="w" id="w${i}">${esc(p.raw)}</span>`).join(' ');
+  cursor=0;stopped=false;
+  paintWords();
+}
+
+function paintWords(badIndex){
+  ayahWords.forEach((p,i)=>{
+    const el=document.getElementById('w'+i);
+    if(!el)return;
+    el.className='w'+(i<cursor?' w-done':'')+(i===cursor&&!stopped?' w-now':'')+(i===badIndex?' w-bad':'');
+  });
+}
+
+// Small edit distance so ordinary speech-recognition wobble isn't called a mistake.
+function editDistance(a,b){
+  const m=a.length,n=b.length;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++){
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    }
+    prev=cur;
+  }
+  return prev[n];
+}
+function wordsMatch(said,want){
+  if(said===want)return true;
+  if(Math.abs(said.length-want.length)>2)return false;
+  return editDistance(said,want)<=(want.length<=3?0:1);
+}
+
 function resetRecitationUI(){
-  finalTranscript='';
+  finalTranscript='';cursor=0;stopped=false;
   document.getElementById('diff-box').style.display='none';
   document.getElementById('diff-box').innerHTML='';
   document.getElementById('acc-line').style.display='none';
+  document.getElementById('coach').className='coach';
+  document.getElementById('coach').innerHTML='';
   document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
   const pb=document.getElementById('pass-box');
   pb.style.display='none';pb.className='pass-box';
+  paintWords();
 }
+
 function toggleRecite(){
   if(!currentAyahText){showErr('Load an ayah first.');return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){showErr("Speech recognition isn't supported in this browser — try Chrome or Edge.");return}
   if(recognizing){recognition.stop();return}
-  finalTranscript='';
-  document.getElementById('diff-box').style.display='none';
-  document.getElementById('acc-line').style.display='none';
+  cursor=0;stopped=false;
+  document.getElementById('coach').className='coach';
+  document.getElementById('pass-box').style.display='none';
+  paintWords();
   recognition=new SR();
   recognition.lang='ar-SA';
   recognition.continuous=true;
@@ -625,42 +684,75 @@ function toggleRecite(){
   recognition.onstart=()=>{
     recognizing=true;
     document.getElementById('mic-btn').classList.add('rec');
-    document.getElementById('rec-status').textContent='Listening… tap again to stop';
+    document.getElementById('rec-status').textContent='Qari Sahib is listening — begin reciting';
   };
   recognition.onerror=(e)=>{
     document.getElementById('rec-status').textContent=`Mic error: ${e.error}`;
   };
   recognition.onresult=(e)=>{
-    let interim='';
-    for(let k=e.resultIndex;k<e.results.length;k++){
-      const res=e.results[k];
-      if(res.isFinal)finalTranscript+=res[0].transcript+' ';
-      else interim+=res[0].transcript;
+    if(stopped)return;
+    let fin='',interim='';
+    for(let k=0;k<e.results.length;k++){
+      const r=e.results[k];
+      if(r.isFinal)fin+=r[0].transcript+' ';else interim+=r[0].transcript+' ';
     }
+    followAlong(wordsOf(fin),wordsOf(interim));
   };
   recognition.onend=()=>{
     recognizing=false;
     document.getElementById('mic-btn').classList.remove('rec');
-    document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
-    finishSession();
+    if(!stopped)document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
   };
   recognition.start();
 }
-function finishSession(){
-  if(!finalTranscript.trim())return;
-  const refWords=wordsOf(currentAyahText);
-  const hypWords=wordsOf(finalTranscript);
-  const ops=diffWords(refWords,hypWords);
-  const box=document.getElementById('diff-box');
-  box.innerHTML=ops.map(o=>`<span class="diff-${o.type}">${esc(o.word)}</span>`).join(' ');
-  box.style.display='block';
-  const matches=ops.filter(o=>o.type==='match').length;
-  const acc=refWords.length?Math.round(matches/refWords.length*100):0;
-  const accLine=document.getElementById('acc-line');
-  accLine.textContent=`Accuracy: ${acc}% — ${ops.filter(o=>o.type==='miss').length} missed, ${ops.filter(o=>o.type==='extra').length} extra`;
-  accLine.style.display='block';
-  logAyahSession(currentSurah,currentAyahNum,acc);
-  showPassResult(acc);
+
+function followAlong(finalWords,interimWords){
+  const all=finalWords.concat(interimWords);
+  let c=0;
+  for(let i=0;i<all.length;i++){
+    if(c>=ayahWords.length)break;
+    const said=all[i];
+    const settled=i<finalWords.length;      // only judge words they've finished saying
+    if(wordsMatch(said,ayahWords[c].norm)){c++;continue}
+    if(c+1<ayahWords.length&&wordsMatch(said,ayahWords[c+1].norm)){
+      if(settled){cursor=c;return flagMistake(c,'skipped',said)}
+      c+=2;continue;
+    }
+    if(settled){cursor=c;return flagMistake(c,'wrong',said)}
+    // still mid-word — let it settle before judging
+  }
+  cursor=c;paintWords();
+  if(c>=ayahWords.length)finishAyah();
+}
+
+function flagMistake(idx,kind,said){
+  stopped=true;
+  try{recognition.stop()}catch(e){}
+  paintWords(idx);
+  document.getElementById('w'+idx)?.scrollIntoView({block:'center'});
+  document.getElementById('rec-status').textContent='Qari Sahib stopped you';
+  const coach=document.getElementById('coach');
+  coach.className='coach bad';
+  coach.innerHTML=`
+    <div><b>✋ Hold on.</b> ${kind==='skipped'?'You skipped a word.':'That word wasn’t quite right.'}</div>
+    <div style="margin-top:8px">The word here is <span class="c-said" style="color:var(--acc)">${esc(ayahWords[idx].raw)}</span></div>
+    ${kind==='wrong'?`<div style="margin-top:4px;opacity:.7">I heard: <span class="c-said">${esc(said)}</span></div>`:''}
+    <div class="c-actions">
+      <button class="tbtn" onclick="playAyahAudio()">▶ Hear it</button>
+      <button class="tbtn" onclick="toggleRecite()">↻ Try again</button>
+    </div>`;
+}
+
+function finishAyah(){
+  stopped=true;
+  try{recognition.stop()}catch(e){}
+  paintWords();
+  document.getElementById('rec-status').textContent='Tap the mic and recite the ayah above';
+  const coach=document.getElementById('coach');
+  coach.className='coach good';
+  coach.innerHTML='<b>✅ Beautiful — you recited the whole ayah correctly.</b>';
+  logAyahSession(currentSurah,currentAyahNum,100);
+  showPassResult(100);
 }
 
 // ── Pass gate: 75% or higher unlocks the next ayah ───────────────────

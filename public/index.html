@@ -759,6 +759,26 @@ function onOrient(e){
   drawQibla(h);
 }
 
+let compassStarted=false;
+
+function startCompassListening(){
+  if(compassStarted)return;
+  compassStarted=true;
+  const btn=document.getElementById('compass-btn');
+  const msg=document.getElementById('q-dir');
+  window.addEventListener('deviceorientationabsolute',onOrient,true);
+  window.addEventListener('deviceorientation',onOrient,true);
+  btn.textContent='🧭 Compass on';btn.classList.add('on');
+  msg.textContent='Hold your phone flat and turn slowly…';
+  setTimeout(()=>{
+    if(!gotReading){
+      msg.textContent='No compass reading from this device — use “Set direction” instead.';
+      btn.textContent='🧭 Use live compass';btn.classList.remove('on');
+      compassStarted=false;
+    }
+  },4000);
+}
+
 function enableCompass(){
   const btn=document.getElementById('compass-btn');
   const msg=document.getElementById('q-dir');
@@ -767,24 +787,35 @@ function enableCompass(){
     msg.textContent='This device has no compass — use “Set direction” instead.';
     btn.style.display='none';return;
   }
-  const start=()=>{
-    window.addEventListener('deviceorientationabsolute',onOrient,true);
-    window.addEventListener('deviceorientation',onOrient,true);
-    btn.textContent='🧭 Compass on';btn.classList.add('on');
-    msg.textContent='Hold your phone flat and turn slowly…';
-    setTimeout(()=>{
-      if(!gotReading){
-        msg.textContent='No compass reading — laptops have no compass chip. Use “Set direction” below instead.';
-        btn.textContent='🧭 Use live compass';btn.classList.remove('on');
-      }
-    },4000);
-  };
   if(typeof DOE.requestPermission==='function'){
     DOE.requestPermission().then(p=>{
-      if(p==='granted')start();
+      if(p==='granted')startCompassListening();
       else msg.textContent='Compass permission denied — allow Motion & Orientation access, then tap again.';
     }).catch(()=>{msg.textContent='Could not start the compass on this device.'});
-  }else start();
+  }else startCompassListening();
+}
+
+// On a phone the compass should just be on. iOS is the exception: it only
+// hands out orientation data if the request comes from a real tap, so there
+// the button has to stay — everywhere else we start listening right away.
+function autoStartCompass(){
+  if(!HAS_COMPASS_UI||compassStarted)return;
+  const DOE=window.DeviceOrientationEvent;
+  if(!DOE)return;
+  if(typeof DOE.requestPermission==='function'){
+    // iOS/Safari only hand over orientation data when the request comes from
+    // a real user gesture, so page load can't do it. Hook the first tap
+    // anywhere instead, rather than making them hunt for the button.
+    document.getElementById('q-dir').textContent='Tap anywhere to switch the compass on.';
+    const events=['pointerdown','touchend','click'];
+    const kick=()=>{
+      events.forEach(ev=>document.removeEventListener(ev,kick,true));
+      enableCompass();
+    };
+    events.forEach(ev=>document.addEventListener(ev,kick,true));
+    return;
+  }
+  startCompassListening();
 }
 
 // Compass controls are phone-only — laptops have no magnetometer, so on a
@@ -794,6 +825,8 @@ if(!HAS_COMPASS_UI){
   const btns=document.querySelector('.qibla-btns');if(btns)btns.style.display='none';
   const box=document.getElementById('manual-box');if(box)box.style.display='none';
   const hint=document.getElementById('q-dir');if(hint)hint.textContent='Direction from North.';
+}else{
+  autoStartCompass();
 }
 
 // ── Manual direction (phone fallback if the compass can't start) ──────

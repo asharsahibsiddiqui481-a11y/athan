@@ -76,6 +76,10 @@ select option{color:#111}
 .dua-translit{font-size:12px;opacity:.6;font-style:italic;margin-bottom:4px}
 .dua-en{font-size:13px;opacity:.8}
 .dua-ref{font-size:11px;opacity:.45;margin-top:6px}
+.dua-src{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
+.dua-src.quran{background:rgba(232,185,77,.18);color:var(--acc);border:1px solid rgba(232,185,77,.45)}
+.dua-src.hadith{background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.2)}
+.dua-legend{font-size:12px;opacity:.6;margin:-6px 0 14px;line-height:1.6}
 .hint{font-size:12px;opacity:.55;margin-top:10px}
 .card-divider{display:flex;align-items:center;gap:12px;margin:22px 0 16px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.45}
 .card-divider::before,.card-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.15)}
@@ -225,6 +229,7 @@ select option{color:#111}
 
   <div class="card">
     <div class="ct">🤲 Dua Library</div>
+    <div class="dua-legend"><b>📖 Quran</b> — words from the Quran itself &nbsp;·&nbsp; <b>📜 Hadith</b> — taught by the Prophet ﷺ</div>
     <div class="dua-cats" id="dua-cats"></div>
     <div id="dua-list"></div>
   </div>
@@ -304,11 +309,14 @@ function renderDuaCats(){
   ).join('');
 }
 function setDuaCat(c){activeCat=c;renderDuaCats();renderDuaList();}
+// Every dua here is either words from the Quran itself or taught by the
+// Prophet ﷺ (Hadith). The source is already recorded in `ref`, so tag from it.
+function isQuranDua(d){return /^Quran\b/.test(d.ref)}
 function renderDuaList(){
   const items=activeCat==='all'?DUAS:DUAS.filter(d=>d.cat===activeCat);
   document.getElementById('dua-list').innerHTML=items.map(d=>`
     <div class="dua-item">
-      <div class="dua-title">${esc(d.title)}</div>
+      <div class="dua-title">${esc(d.title)}<span class="dua-src ${isQuranDua(d)?'quran':'hadith'}">${isQuranDua(d)?'📖 Quran':'📜 Hadith'}</span></div>
       <div class="dua-ar">${d.ar}</div>
       <div class="dua-translit">${esc(d.translit)}</div>
       <div class="dua-en">${esc(d.en)}</div>

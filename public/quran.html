@@ -25,6 +25,10 @@ select option{color:#111}
 .picker-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .ayah-box{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:18px}
 .ayah-ar{font-size:28px;line-height:2.1;direction:rtl;text-align:right;font-family:'Traditional Arabic','Scheherazade New',serif}
+.ayah-bism{font-size:22px;direction:rtl;text-align:center;opacity:.8;margin-bottom:12px;font-family:'Traditional Arabic','Scheherazade New',serif}
+.ayah-img{display:block;width:100%;max-width:420px;margin:14px auto 0;padding:10px 14px;background:#fff;border-radius:10px}
+.ayah-img-cap{font-size:11px;opacity:.45;text-align:center;margin-top:6px}
+.basmala{display:block;text-align:center;margin:4px 0 14px;font-size:22px;opacity:.85}
 .ayah-ar .w{padding:0 3px;border-radius:5px;transition:color .15s,background .15s}
 .ayah-ar .w-done{color:var(--acc)}
 .ayah-ar .w-now{background:rgba(232,185,77,.22);box-shadow:0 0 0 1.5px rgba(232,185,77,.6)}
@@ -153,7 +157,10 @@ select option{color:#111}
       <select id="sel-ayah" onchange="loadAyah()"></select>
     </div>
     <div class="ayah-box">
+      <div class="ayah-bism" id="ayah-bism" style="display:none"></div>
       <div class="ayah-ar" id="ayah-ar">—</div>
+      <img class="ayah-img" id="ayah-img" alt="" style="display:none" onerror="this.style.display='none';document.getElementById('ayah-img-cap').style.display='none'"/>
+      <div class="ayah-img-cap" id="ayah-img-cap" style="display:none">the same ayah, printed from the Mushaf</div>
       <div class="ayah-en" id="ayah-en">Loading…</div>
       <div class="ayah-ref" id="ayah-ref"></div>
     </div>
@@ -510,6 +517,18 @@ function onSurahChange(){
   ayahSel.innerHTML=Array.from({length:surah.numberOfAyahs},(_,i)=>`<option value="${i+1}">Ayah ${i+1}</option>`).join('');
   loadAyah();
 }
+// The API glues the Bismillah onto ayah 1 of every surah except Al-Fatiha
+// (where it IS ayah 1) and At-Tawbah (which has none). The printed Mushaf sets
+// it on its own line above the surah, so split it off instead of letting it
+// count as part of the verse you're asked to recite.
+const BISMILLAH=['بسم','الله','الرحمن','الرحيم'].join(' ');
+function splitBismillah(text){
+  const parts=text.replace(/﻿/g,'').trim().split(/\s+/);
+  if(parts.length<=4)return{bismillah:'',rest:text};
+  if(parts.slice(0,4).map(normalizeAr).join(' ')!==BISMILLAH)return{bismillah:'',rest:text};
+  return{bismillah:parts.slice(0,4).join(' '),rest:parts.slice(4).join(' ')};
+}
+
 async function loadAyah(){
   const surahN=+document.getElementById('sel-surah').value;
   const ayahN=+document.getElementById('sel-ayah').value;
@@ -522,10 +541,20 @@ async function loadAyah(){
     const arObj=r.data.find(d=>d.edition.identifier==='quran-uthmani');
     const enObj=r.data.find(d=>d.edition.identifier==='en.sahih');
     const audioObj=r.data.find(d=>d.edition.identifier==='ar.alafasy');
-    currentAyahText=arObj.text;
+    const split=splitBismillah(arObj.text);
+    currentAyahText=split.rest;
     currentAyahAudioUrl=audioObj.audio;
     currentSurah=surahN;currentAyahNum=ayahN;
+    const bism=document.getElementById('ayah-bism');
+    bism.textContent=split.bismillah;
+    bism.style.display=split.bismillah?'block':'none';
     renderAyahWords(currentAyahText);
+    // the same ayah as printed in the Mushaf, so you can check it yourself
+    const img=document.getElementById('ayah-img');
+    img.alt=`Quran ${surahN}:${ayahN}`;
+    img.style.display='block';
+    document.getElementById('ayah-img-cap').style.display='block';
+    img.src=`https://cdn.islamic.network/quran/images/high-resolution/${surahN}_${ayahN}.png`;
     document.getElementById('ayah-en').textContent=enObj.text;
     document.getElementById('ayah-ref').textContent=`${surah?surah.englishName:''} — ${surahN}:${ayahN}`;
     if(arObj.page&&arObj.page!==currentPage)await loadMushafPage(arObj.page);
@@ -558,8 +587,13 @@ function renderMushafPage(data){
   document.getElementById('page-info').textContent=`Page ${data.number} of 604 · Juz ${ayahs[0].juz}`;
   let html='<div class="mushaf-text">';
   ayahs.forEach(a=>{
-    if(a.numberInSurah===1)html+=`<span class="surah-divider">﴾ ${esc(a.surah.name)} ﴿</span>`;
-    html+=`${a.text} <span class="ayah-mark" data-surah="${a.surah.number}" data-ayahnum="${a.numberInSurah}" onclick="jumpToAyah(${a.surah.number},${a.numberInSurah})">${toArabicDigits(a.numberInSurah)}</span> `;
+    let text=a.text;
+    if(a.numberInSurah===1){
+      html+=`<span class="surah-divider">﴾ ${esc(a.surah.name)} ﴿</span>`;
+      const s=splitBismillah(text);
+      if(s.bismillah){html+=`<span class="basmala">${s.bismillah}</span>`;text=s.rest}
+    }
+    html+=`${text} <span class="ayah-mark" data-surah="${a.surah.number}" data-ayahnum="${a.numberInSurah}" onclick="jumpToAyah(${a.surah.number},${a.numberInSurah})">${toArabicDigits(a.numberInSurah)}</span> `;
   });
   html+='</div>';
   document.getElementById('mushaf-page').innerHTML=html;

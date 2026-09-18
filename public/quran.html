@@ -83,6 +83,8 @@ select option{color:#111}
 .dua-src{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
 .dua-src.quran{background:rgba(232,185,77,.18);color:var(--acc);border:1px solid rgba(232,185,77,.45)}
 .dua-src.hadith{background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.2)}
+.check-link{display:inline-block;font-size:11px;margin-top:8px;color:var(--acc);opacity:.85;text-decoration:none;border-bottom:1px dotted rgba(232,185,77,.55)}
+.check-link:hover{opacity:1}
 .dua-legend{font-size:12px;opacity:.6;margin:-6px 0 14px;line-height:1.6}
 .hint{font-size:12px;opacity:.55;margin-top:10px}
 .card-divider{display:flex;align-items:center;gap:12px;margin:22px 0 16px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;opacity:.45}
@@ -199,6 +201,7 @@ select option{color:#111}
       <div class="learn-translit" id="learn-translit"></div>
       <div class="learn-en" id="learn-en"></div>
       <div class="learn-desc" id="learn-desc"></div>
+      <a class="check-link" id="learn-check" target="_blank" rel="noopener" style="display:none">🔎 check this on sunnah.com</a>
     </div>
     <div class="learn-nav">
       <button class="tbtn" id="learn-prev" onclick="prevStep()">◀ Previous</button>
@@ -319,6 +322,13 @@ function setDuaCat(c){activeCat=c;renderDuaCats();renderDuaList();}
 // Every dua here is either words from the Quran itself or taught by the
 // Prophet ﷺ (Hadith). The source is already recorded in `ref`, so tag from it.
 function isQuranDua(d){return /^Quran\b/.test(d.ref)}
+
+// Sunnah.com's search works best without the vowel marks, so strip those
+// (and tatweel) before handing it the phrase.
+function sunnahSearchUrl(ar){
+  const plain=ar.replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g,'').trim();
+  return `https://sunnah.com/search?q=${encodeURIComponent(plain)}`;
+}
 function renderDuaList(){
   const items=activeCat==='all'?DUAS:DUAS.filter(d=>d.cat===activeCat);
   document.getElementById('dua-list').innerHTML=items.map(d=>`
@@ -328,6 +338,7 @@ function renderDuaList(){
       <div class="dua-translit">${esc(d.translit)}</div>
       <div class="dua-en">${esc(d.en)}</div>
       <div class="dua-ref">${esc(d.ref)}</div>
+      ${isQuranDua(d)?'':`<a class="check-link" href="${sunnahSearchUrl(d.ar)}" target="_blank" rel="noopener">🔎 check this on sunnah.com</a>`}
     </div>`).join('');
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -379,6 +390,9 @@ function renderLearnStep(){
   const enEl=document.getElementById('learn-en');
   enEl.textContent=s.en||'';enEl.style.display=s.en?'block':'none';
   document.getElementById('learn-desc').textContent=s.desc||'';
+  const chk=document.getElementById('learn-check');
+  if(s.ar){chk.href=sunnahSearchUrl(s.ar);chk.style.display='inline-block'}
+  else chk.style.display='none';
   document.getElementById('learn-progress-lbl').textContent=`Step ${stepIndex+1} of ${steps.length}`;
   document.getElementById('learn-pbar').style.width=`${((stepIndex+1)/steps.length*100).toFixed(0)}%`;
   document.getElementById('learn-prev').disabled=stepIndex===0;

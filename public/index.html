@@ -755,21 +755,33 @@ function onOrient(e){
   if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;
   else if(e.absolute===true&&typeof e.alpha==='number')h=(360-e.alpha)%360;
   if(h===null)return;
+  if(!gotReading){           // first real reading: the compass is genuinely on
+    const btn=document.getElementById('compass-btn');
+    btn.textContent='🧭 Compass on';btn.classList.add('on');
+  }
   gotReading=true;compassHeading=h;
   drawQibla(h);
 }
 
-let compassStarted=false;
+let compassStarted=false,listening=false;
+
+// Safe to call at any time: if the device hasn't granted orientation access
+// yet, the events simply never fire.
+function listenForHeading(){
+  if(listening)return;
+  listening=true;
+  window.addEventListener('deviceorientationabsolute',onOrient,true);
+  window.addEventListener('deviceorientation',onOrient,true);
+}
 
 function startCompassListening(){
   if(compassStarted)return;
   compassStarted=true;
   const btn=document.getElementById('compass-btn');
   const msg=document.getElementById('q-dir');
-  window.addEventListener('deviceorientationabsolute',onOrient,true);
-  window.addEventListener('deviceorientation',onOrient,true);
+  listenForHeading();
   btn.textContent='🧭 Compass on';btn.classList.add('on');
-  msg.textContent='Hold your phone flat and turn slowly…';
+  if(!gotReading)msg.textContent='Hold your phone flat and turn slowly…';
   setTimeout(()=>{
     if(!gotReading){
       msg.textContent='No compass reading from this device — use “Set direction” instead.';
@@ -795,22 +807,24 @@ function enableCompass(){
   }else startCompassListening();
 }
 
-// On a phone the compass should just be on. iOS is the exception: it only
-// hands out orientation data if the request comes from a real tap, so there
-// the button has to stay — everywhere else we start listening right away.
+// On a phone the compass should just be on.
+//  - Android asks for no permission, so start straight away.
+//  - iPhone only asks for motion access from a real tap, so the very first
+//    visit needs one. But it remembers "Allow" afterwards — so listen right
+//    away regardless: on every later visit the readings simply start flowing
+//    and it's on with no tap at all. The tap hook only matters if nothing
+//    arrives, i.e. access hasn't been granted yet.
 function autoStartCompass(){
   if(!HAS_COMPASS_UI||compassStarted)return;
   const DOE=window.DeviceOrientationEvent;
   if(!DOE)return;
   if(typeof DOE.requestPermission==='function'){
-    // iOS/Safari only hand over orientation data when the request comes from
-    // a real user gesture, so page load can't do it. Hook the first tap
-    // anywhere instead, rather than making them hunt for the button.
+    listenForHeading();
     document.getElementById('q-dir').textContent='Tap anywhere to switch the compass on.';
     const events=['pointerdown','touchend','click'];
     const kick=()=>{
       events.forEach(ev=>document.removeEventListener(ev,kick,true));
-      enableCompass();
+      if(!gotReading)enableCompass();   // already reading? don't prompt again
     };
     events.forEach(ev=>document.addEventListener(ev,kick,true));
     return;

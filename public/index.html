@@ -488,7 +488,7 @@ function onSearchKey(e){
   else if(e.key==='ArrowUp'){e.preventDefault();suggActive=Math.max(suggActive-1,-1);updateActive(items)}
   else if(e.key==='Escape'){hideSugg()}
 }
-document.addEventListener('click',e=>{if(!e.target.closest('.sw'))hideSugg()});
+document.addEventListener('click',e=>{if(!e.target.closest?.('.sw'))hideSugg()});
 function updateActive(items){
   items.forEach((it,i)=>it.classList.toggle('active',i===suggActive));
   if(suggActive>=0&&suggData[suggActive])document.getElementById('si').value=suggData[suggActive].name;

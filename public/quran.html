@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Qari Sahib</title>
 <link rel="icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Amiri:wght@400;700&display=swap"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--glass:rgba(255,255,255,0.08);--gb:rgba(255,255,255,0.14);--r:20px;--rs:14px;--acc:#e8b94d}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:20px 14px 60px;background:linear-gradient(180deg,#03040a,#0a1128,#141a35);color:#fff}
+body{font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:20px 14px 60px;background:linear-gradient(180deg,#03040a,#0a1128,#141a35);color:#fff}
 #stars{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 .wrap{position:relative;z-index:1;width:100%;max-width:680px;display:flex;flex-direction:column;gap:14px}
 .topbar{display:flex;align-items:center;justify-content:space-between}
@@ -24,8 +27,8 @@ select option{color:#111}
 .tbtn.on{background:var(--acc);color:#1a1300}
 .picker-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .ayah-box{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:18px}
-.ayah-ar{font-size:28px;line-height:2.1;direction:rtl;text-align:right;font-family:'Traditional Arabic','Scheherazade New',serif}
-.ayah-bism{font-size:22px;direction:rtl;text-align:center;opacity:.8;margin-bottom:12px;font-family:'Traditional Arabic','Scheherazade New',serif}
+.ayah-ar{font-size:28px;line-height:2.1;direction:rtl;text-align:right;font-family:'Amiri','Traditional Arabic','Scheherazade New',serif}
+.ayah-bism{font-size:22px;direction:rtl;text-align:center;opacity:.8;margin-bottom:12px;font-family:'Amiri','Traditional Arabic','Scheherazade New',serif}
 .ayah-img{display:block;width:100%;max-width:420px;margin:14px auto 0;padding:10px 14px;background:#fff;border-radius:10px}
 .ayah-img-cap{font-size:11px;opacity:.45;text-align:center;margin-top:6px}
 .basmala{display:block;text-align:center;margin:4px 0 14px;font-size:22px;opacity:.85}
@@ -36,7 +39,7 @@ select option{color:#111}
 .coach{display:none;margin-top:14px;padding:14px;border-radius:var(--rs);font-size:14px;line-height:1.6}
 .coach.bad{display:block;background:rgba(255,122,122,.10);border:1px solid rgba(255,122,122,.45)}
 .coach.good{display:block;background:rgba(127,224,160,.10);border:1px solid rgba(127,224,160,.5)}
-.coach .c-said{font-family:'Traditional Arabic','Scheherazade New',serif;font-size:20px;direction:rtl}
+.coach .c-said{font-family:'Amiri','Traditional Arabic','Scheherazade New',serif;font-size:20px;direction:rtl}
 .coach .c-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .ayah-en{font-size:14px;opacity:.75;margin-top:12px;line-height:1.6}
 .ayah-ref{font-size:12px;opacity:.5;margin-top:10px}
@@ -44,7 +47,7 @@ select option{color:#111}
 .page-info{font-size:13px;opacity:.7;font-weight:600;text-align:center}
 .mushaf-page{border:2px solid var(--acc);border-radius:14px;padding:28px 22px;background:radial-gradient(ellipse at center,rgba(232,185,77,.06),transparent 70%),rgba(255,255,255,.03);position:relative}
 .mushaf-page::before{content:'';position:absolute;inset:6px;border:1px solid rgba(232,185,77,.35);border-radius:9px;pointer-events:none}
-.mushaf-text{direction:rtl;text-align:justify;text-align-last:right;font-size:24px;line-height:2.3;font-family:'Traditional Arabic','Scheherazade New',serif;position:relative}
+.mushaf-text{direction:rtl;text-align:justify;text-align-last:right;font-size:24px;line-height:2.3;font-family:'Amiri','Traditional Arabic','Scheherazade New',serif;position:relative}
 .surah-divider{display:block;text-align:center;margin:10px 0 16px;font-size:17px;font-weight:700;color:var(--acc);opacity:.95}
 .ayah-mark{display:inline-flex;align-items:center;justify-content:center;width:1.5em;height:1.5em;border:1.5px solid var(--acc);border-radius:50%;font-size:.5em;color:var(--acc);margin:0 5px;vertical-align:middle;cursor:pointer;transition:all .2s;line-height:1}
 .ayah-mark:hover{background:var(--acc);color:#1a1300}
@@ -76,7 +79,7 @@ select option{color:#111}
 .dua-item{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .dua-item:last-child{border-bottom:none}
 .dua-title{font-weight:700;font-size:14px;margin-bottom:8px}
-.dua-ar{font-size:20px;direction:rtl;text-align:right;line-height:1.9;margin-bottom:6px;font-family:'Traditional Arabic','Scheherazade New',serif}
+.dua-ar{font-size:20px;direction:rtl;text-align:right;line-height:1.9;margin-bottom:6px;font-family:'Amiri','Traditional Arabic','Scheherazade New',serif}
 .dua-translit{font-size:12px;opacity:.6;font-style:italic;margin-bottom:4px}
 .dua-en{font-size:13px;opacity:.8}
 .dua-ref{font-size:11px;opacity:.45;margin-top:6px}
@@ -106,7 +109,7 @@ select option{color:#111}
 .learn-step{background:rgba(255,255,255,.05);border-radius:var(--rs);padding:22px;text-align:center;min-height:160px}
 .learn-icon{font-size:44px;margin-bottom:10px}
 .learn-title{font-size:17px;font-weight:700;margin-bottom:10px}
-.learn-ar{font-size:24px;direction:rtl;font-family:'Traditional Arabic','Scheherazade New',serif;line-height:1.9;margin-bottom:8px}
+.learn-ar{font-size:24px;direction:rtl;font-family:'Amiri','Traditional Arabic','Scheherazade New',serif;line-height:1.9;margin-bottom:8px}
 .learn-translit{font-size:13px;opacity:.65;font-style:italic;margin-bottom:6px}
 .learn-en{font-size:13px;opacity:.85;margin-bottom:10px}
 .learn-desc{font-size:14px;opacity:.8;line-height:1.6}
@@ -119,7 +122,7 @@ select option{color:#111}
 .surah-row:hover{background:rgba(255,255,255,.08)}
 .surah-num{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--acc);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .surah-names{flex:1;min-width:0}
-.surah-ar{font-size:17px;font-family:'Traditional Arabic','Scheherazade New',serif;direction:rtl}
+.surah-ar{font-size:17px;font-family:'Amiri','Traditional Arabic','Scheherazade New',serif;direction:rtl}
 .surah-en{font-size:12px;opacity:.55;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .surah-meta{text-align:right;flex-shrink:0}
 .surah-count{font-size:12px;opacity:.6}

@@ -96,6 +96,12 @@ select option{color:#111}
 .auth-user-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .auth-user-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
 .auth-sub{font-size:12px;opacity:.5;margin-top:8px}
+.auth-intro{text-align:center;margin-bottom:22px}
+.auth-intro .ei{font-size:52px;margin-bottom:10px}
+.auth-intro p{font-size:14px;opacity:.6;line-height:1.6}
+/* signed out: the account card is the whole page */
+.wrap.signed-out{justify-content:center;min-height:calc(100dvh - 80px)}
+.wrap.signed-out #auth-card{padding:34px 26px}
 .goal-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .goal-stats{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;opacity:.75}
 </style>
@@ -117,6 +123,10 @@ select option{color:#111}
   <div class="card" id="auth-card">
     <div class="ct">👤 Account</div>
     <div id="auth-signedout">
+      <div class="auth-intro">
+        <div class="ei">🔒</div>
+        <p>Sign in, or continue as a guest, to see today's prayer times.</p>
+      </div>
       <div class="utog" id="auth-tabs">
         <button id="auth-tab-login" class="on" onclick="setAuthTab('login')">Sign In</button>
         <button id="auth-tab-register" onclick="setAuthTab('register')">Register</button>
@@ -254,10 +264,6 @@ select option{color:#111}
     <p>Search a city or use your location to see today's prayer times.</p>
   </div>
 
-  <div class="empty" id="locked">
-    <div class="ei">🔒</div>
-    <p>Sign in above, or continue as a guest, to see today's prayer times.</p>
-  </div>
 </div>
 
 <script>
@@ -393,7 +399,7 @@ function renderAuth(){
   }
   // Gate everything below the Account card on being signed in.
   document.getElementById('searchbar').style.display=signedIn?'flex':'none';
-  document.getElementById('locked').style.display=signedIn?'none':'block';
+  document.querySelector('.wrap').classList.toggle('signed-out',!signedIn);
   if(signedIn){
     startApp();
     if(!timings)show('empty');

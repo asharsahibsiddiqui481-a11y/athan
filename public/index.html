@@ -179,7 +179,7 @@ select option{color:#111}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="qibla-card">
       <div class="ct">🧭 Qibla Direction</div>
       <div class="qibla-inner">
         <svg class="qibla-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
@@ -836,9 +836,9 @@ function autoStartCompass(){
 // desktop the card just shows the bearing from North with no extra buttons.
 const HAS_COMPASS_UI=!!(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches&&(navigator.maxTouchPoints||0)>0);
 if(!HAS_COMPASS_UI){
-  const btns=document.querySelector('.qibla-btns');if(btns)btns.style.display='none';
-  const box=document.getElementById('manual-box');if(box)box.style.display='none';
-  const hint=document.getElementById('q-dir');if(hint)hint.textContent='Direction from North.';
+  // A laptop has no compass, and a dial you can't point is no use — drop the
+  // whole card rather than showing a direction with nothing to aim it by.
+  const card=document.getElementById('qibla-card');if(card)card.style.display='none';
 }else{
   autoStartCompass();
 }

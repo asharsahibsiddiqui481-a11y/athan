@@ -236,19 +236,9 @@ select option{color:#111}
     <div class="card">
       <div class="ct">⚙️ Settings</div>
       <div class="set-row">
-        <div><div class="set-label">Calculation method</div><div class="set-sub">Affects Fajr/Isha angles</div></div>
+        <div><div class="set-label">Calculation method</div><div class="set-sub" id="method-sub">Affects Fajr/Isha angles</div></div>
         <select id="sel-method" onchange="onMethodChange()">
-          <option value="3">Muslim World League</option>
-          <option value="2">ISNA (North America)</option>
-          <option value="4">Umm al-Qura, Makkah</option>
-          <option value="5">Egyptian Authority</option>
-          <option value="1">Karachi</option>
-          <option value="7">Tehran</option>
-          <option value="8">Gulf Region</option>
-          <option value="9">Kuwait</option>
-          <option value="10">Qatar</option>
-          <option value="13">Diyanet, Turkey</option>
-          <option value="16">Dubai</option>
+          <option value="auto">Automatic — from your location</option>
         </select>
       </div>
       <div class="set-row">
@@ -342,7 +332,7 @@ const KAABA={lat:21.4225,lon:39.8262};
 
 // ── State ─────────────────────────────────────────────────────────────
 let use24=localStorage.getItem('ac_24')!=='0';
-let method=localStorage.getItem('ac_method')||'3';
+let method=localStorage.getItem('ac_method')||'auto';
 let school=localStorage.getItem('ac_school')||'0';
 let notifyOn=localStorage.getItem('ac_notify')==='1';
 let curLoc=JSON.parse(localStorage.getItem('ac_loc')||'null');
@@ -354,7 +344,6 @@ let suggTimer=null,suggActive=-1,suggData=[];
 let currentUser=null,authTab='login';
 
 // ── Init ──────────────────────────────────────────────────────────────
-document.getElementById('sel-method').value=method;
 setFormat(use24,true);
 setSchool(school,true);
 if(notifyOn)document.getElementById('notify-btn').classList.add('on'),document.getElementById('notify-btn').textContent='On';
@@ -572,14 +561,65 @@ async function reverseAndFetch(lat,lon){
   await fetchByCoords(lat,lon,name,cc);
 }
 
+// ── Calculation method ────────────────────────────────────────────────
+// Every method in the Aladhan list is a real authority with a location, and
+// they sit in the regions they serve — ISNA in Indiana, Diyanet in Ankara,
+// JAKIM in Kuala Lumpur — so "nearest authority" makes a good automatic
+// choice. Method 0 is excluded: it is a sect-specific choice rather than a
+// regional one, and shouldn't be picked for someone purely by where they are.
+let methodsList=[],autoMethod=null;
+
+function kmBetween(lat1,lon1,lat2,lon2){
+  const R=6371,r=Math.PI/180;
+  const dLat=(lat2-lat1)*r,dLon=(lon2-lon1)*r;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+async function loadMethods(){
+  try{
+    const r=await fetch('https://api.aladhan.com/v1/methods').then(r=>r.json());
+    methodsList=Object.values(r.data).filter(m=>m&&m.name&&typeof m.id==='number');
+    const sel=document.getElementById('sel-method');
+    sel.innerHTML='<option value="auto">Automatic — from your location</option>'+
+      methodsList.slice().sort((a,b)=>a.name.localeCompare(b.name))
+        .map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+    sel.value=method;
+  }catch(e){/* leave the dropdown as-is and fall back to a fixed method */}
+}
+const methodsReady=loadMethods();
+
+function pickMethodFor(lat,lon){
+  let best=null,bestKm=Infinity;
+  methodsList.forEach(m=>{
+    if(!m.location||m.id===0)return;
+    const d=kmBetween(lat,lon,m.location.latitude,m.location.longitude);
+    if(d<bestKm){bestKm=d;best=m}
+  });
+  return best;
+}
+function effectiveMethod(){
+  if(method!=='auto')return method;
+  return autoMethod?String(autoMethod.id):'3';
+}
+function updateMethodLabel(){
+  const el=document.getElementById('method-sub');
+  if(!el)return;
+  el.textContent=(method==='auto'&&autoMethod)
+    ? `Automatic — using ${autoMethod.name}`
+    : 'Affects Fajr/Isha angles';
+}
+
 // ── Prayer times fetch ────────────────────────────────────────────────
 async function fetchTimings(lat,lon,ts){
-  const url=`https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lon}&method=${method}&school=${school}`;
+  const url=`https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lon}&method=${effectiveMethod()}&school=${school}`;
   return fetch(url).then(r=>r.json());
 }
 
 async function fetchByCoords(lat,lon,name,cc){
   show('ld');hide('err');hide('ac');hide('empty');
+  await methodsReady;
+  if(method==='auto'){autoMethod=pickMethodFor(lat,lon);updateMethodLabel()}
   try{
     const now=Math.floor(Date.now()/1000);
     const[td,tmd]=await Promise.all([fetchTimings(lat,lon,now),fetchTimings(lat,lon,now+86400)]);
@@ -941,6 +981,7 @@ function setSchool(v,skipSave){
 function onMethodChange(){
   method=document.getElementById('sel-method').value;
   localStorage.setItem('ac_method',method);
+  updateMethodLabel();
   if(curLoc)fetchByCoords(curLoc.lat,curLoc.lon,curLoc.name,curLoc.cc);
 }
 function toggleNotify(){
